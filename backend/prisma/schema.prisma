@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  nama      String
+  email     String    @unique
+  password  String
+  namaPena  String
+  bio       String    @default("")
+  role      String    @default("penulis")
+  createdAt DateTime  @default(now())
+
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  judul     String
+  tipe      String    @default("cerpen") // "cerpen" atau "artikel", sesuai FR-03.3
+  isi       String    @default("")
+  isiHtml   String    @default("")
+  status    String    @default("draft")  // "draft" atau "terbit"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  penulis   User      @relation(fields: [penulisId], references: [id])
+  penulisId String
+
+  comments  Comment[]
+  likes     Like[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  isi       String
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+// Tabel terpisah untuk Like, supaya satu user cuma bisa like sekali per post (FR-04.2)
+model Like {
+  id     String @id @default(cuid())
+
+  post   Post   @relation(fields: [postId], references: [id])
+  postId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@unique([postId, userId]) // kombinasi post+user harus unik
+}
