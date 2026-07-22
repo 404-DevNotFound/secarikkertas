@@ -7,7 +7,7 @@ export default function Footer() {
           Bukan sekadar komunitas melainkan ruang untuk bernapas.
         </p>
         <p className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint mt-3">
-          © {new Date().getFullYear()} secarikkertas.com
+          © {new Date().getFullYear()} secarikkertas.my.id
         </p>
       </div>
     </footer>
