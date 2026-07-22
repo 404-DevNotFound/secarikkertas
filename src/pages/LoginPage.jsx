@@ -7,7 +7,7 @@ import Button from '../components/common/Button'
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
@@ -15,23 +15,23 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     try {
-      await login(email, password)
+      await login(username, password)
       navigate('/dashboard')
     } catch (err) {
-      setError('Email atau kata sandi salah')
+      setError('Username atau kata sandi salah')
     }
   }
 
   return (
-    <div className="max-w-sm mx-auto px-4 py-16">
-      <h1 className="text-xl font-bold text-slate-800 mb-6">Masuk</h1>
+    <div className="max-w-sm mx-auto px-6 py-20">
+      <h1 className="font-judul text-2xl font-semibold text-tinta mb-8">Masuk</h1>
       <form onSubmit={handleSubmit}>
-        <InputField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <InputField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
         <InputField label="Kata Sandi" type="password" value={password} onChange={(e) => setPassword(e.target.value)} error={error} />
         <Button type="submit">Masuk</Button>
       </form>
-      <p className="text-sm text-slate-500 mt-4">
-        Belum punya akun? <Link to="/register" className="underline">Daftar</Link>
+      <p className="font-baca text-sm text-tinta-soft mt-6">
+        Belum punya akun? <Link to="/register" className="text-stempel-dark underline">Daftar</Link>
       </p>
     </div>
   )

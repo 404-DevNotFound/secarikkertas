@@ -6,47 +6,53 @@ import Sidebar from '../components/layout/Sidebar'
 export default function HomePage() {
   const [posts, setPosts] = useState([])
   const [keyword, setKeyword] = useState('')
-  const [tab, setTab] = useState('cerpen') // FR-03.3: tab Artikel vs Cerpen
+  const [tab, setTab] = useState('cerpen')
 
   useEffect(() => {
     api.get('/posts', { params: { tipe: tab, q: keyword } })
       .then((res) => setPosts(res.data))
-  }, [tab, keyword]) // FR-05.2: search-as-you-type, otomatis fetch ulang saat keyword berubah
+  }, [tab, keyword])
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
+    <div className="max-w-5xl mx-auto px-6 py-12 flex flex-col md:flex-row gap-12">
       <div className="flex-1">
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           placeholder="Cari cerpen atau artikel..."
-          className="w-full px-4 py-2 mb-6 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-200"
+          className="w-full px-0 py-3 mb-8 bg-transparent border-b-2 border-kertas-line focus:border-stempel outline-none font-baca text-lg placeholder:text-tinta-faint/60 transition-colors"
         />
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-1 mb-8 font-mono text-xs uppercase tracking-wide">
           <button
             onClick={() => setTab('cerpen')}
-            className={`px-4 py-2 rounded-lg ${tab === 'cerpen' ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}
+            className={`px-4 py-2 border-b-2 transition-colors ${
+              tab === 'cerpen' ? 'border-stempel text-tinta' : 'border-transparent text-tinta-faint hover:text-tinta-soft'
+            }`}
           >
             Koleksi Cerpen
           </button>
           <button
             onClick={() => setTab('artikel')}
-            className={`px-4 py-2 rounded-lg ${tab === 'artikel' ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}
+            className={`px-4 py-2 border-b-2 transition-colors ${
+              tab === 'artikel' ? 'border-stempel text-tinta' : 'border-transparent text-tinta-faint hover:text-tinta-soft'
+            }`}
           >
             Artikel Edukasi
           </button>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-5">
           {posts.map((p) => (
             <CardPost key={p.id} {...p} />
           ))}
-          {posts.length === 0 && <p className="text-slate-400">Belum ada tulisan.</p>}
+          {posts.length === 0 && (
+            <p className="font-baca italic text-tinta-faint">Belum ada tulisan.</p>
+          )}
         </div>
       </div>
 
-      <Sidebar kategori={['Coming of Age', 'Romansa']} populer={posts.slice(0, 3)} />
+      <Sidebar kategori={['Romansa', 'Horor', 'Slice of Life']} populer={posts.slice(0, 3)} />
     </div>
   )
 }

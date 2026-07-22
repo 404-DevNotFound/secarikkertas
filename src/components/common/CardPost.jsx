@@ -2,39 +2,54 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
 
-// Ini pengembangan dari CardPost yang sudah kamu buat sendiri sebelumnya.
-// Bedanya: sekarang liked datang dari props (data asli dari server),
-// dan saat diklik langsung update tampilan dulu (optimistic),
-// baru kirim request ke server di belakang layar (FR-04.2).
-export default function CardPost({ id, judul, penulis, ringkasan, likedAwal = false }) {
+// Tepi atas "robek" dibuat lewat clip-path zigzag — signature visual
+// dari tema "secarik kertas". Dibuat ringan (CSS murni, tanpa gambar).
+const TORN_EDGE = {
+  clipPath:
+    'polygon(0% 6px, 4% 0%, 8% 6px, 12% 0%, 16% 6px, 20% 0%, 24% 6px, 28% 0%, 32% 6px, 36% 0%, 40% 6px, 44% 0%, 48% 6px, 52% 0%, 56% 6px, 60% 0%, 64% 6px, 68% 0%, 72% 6px, 76% 0%, 80% 6px, 84% 0%, 88% 6px, 92% 0%, 96% 6px, 100% 0%, 100% 100%, 0% 100%)',
+}
+
+export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAwal = 0, likedAwal = false }) {
   const [liked, setLiked] = useState(likedAwal)
+  const [likes, setLikes] = useState(likesAwal)
 
   async function handleLike() {
     const nilaiBaru = !liked
-    setLiked(nilaiBaru) // update UI instan, tidak nunggu server
+    setLiked(nilaiBaru)
+    setLikes((n) => (nilaiBaru ? n + 1 : Math.max(0, n - 1)))
 
     try {
       await api.post(`/posts/${id}/like`, { liked: nilaiBaru })
     } catch (err) {
-      // kalau request gagal, kembalikan tampilan seperti semula
       setLiked(!nilaiBaru)
+      setLikes((n) => (nilaiBaru ? Math.max(0, n - 1) : n + 1))
       console.error('Gagal menyimpan like:', err)
     }
   }
 
   return (
-    <div className="p-5 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+    <div style={TORN_EDGE} className="bg-white pt-4 pb-5 px-6 shadow-[0_1px_3px_rgba(43,42,40,0.08)] hover:shadow-[0_4px_14px_rgba(43,42,40,0.12)] transition-shadow">
       <Link to={`/post/${id}`}>
-        <h2 className="text-lg font-semibold text-slate-800">{judul}</h2>
+        <h2 className="font-judul text-xl font-semibold text-tinta hover:text-stempel-dark transition-colors">
+          {judul}
+        </h2>
       </Link>
-      <p className="text-sm text-slate-500 mb-2">oleh {penulis}</p>
-      {ringkasan && <p className="text-slate-600 text-sm mb-3">{ringkasan}</p>}
+      <p className="font-mono text-[11px] uppercase tracking-wide text-tinta-faint mt-1 mb-3">
+        oleh {penulis}
+      </p>
+      {ringkasan && (
+        <p className="font-baca text-[15px] leading-relaxed text-tinta-soft mb-4">{ringkasan}</p>
+      )}
 
       <button
         onClick={handleLike}
-        className="text-sm px-3 py-1 rounded-full border border-slate-200 hover:bg-slate-50"
+        className={`font-mono text-xs px-3 py-1.5 border transition-colors ${
+          liked
+            ? 'bg-stempel-light border-stempel text-stempel-dark'
+            : 'border-kertas-line text-tinta-soft hover:border-stempel hover:text-stempel-dark'
+        }`}
       >
-        {liked ? '❤️ Disukai' : '🤍 Suka'}
+        {liked ? '♥ DISUKAI' : '♡ SUKA'} · {likes}
       </button>
     </div>
   )

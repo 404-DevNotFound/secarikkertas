@@ -1,14 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import api from '../api/axios'
 
-// FR-02.1: state login pengguna disimpan global di front-end
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Saat app pertama kali dibuka, cek apakah ada token tersimpan
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
@@ -21,14 +19,14 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  async function login(email, password) {
-    const res = await api.post('/auth/login', { email, password })
+  async function login(username, password) {
+    const res = await api.post('/auth/login', { username, password })
     localStorage.setItem('token', res.data.token)
     setUser(res.data.user)
   }
 
-  async function register(nama, email, password) {
-    const res = await api.post('/auth/register', { nama, email, password })
+  async function register(nama, username, password) {
+    const res = await api.post('/auth/register', { nama, username, password })
     localStorage.setItem('token', res.data.token)
     setUser(res.data.user)
   }
@@ -45,7 +43,6 @@ export function AuthProvider({ children }) {
   )
 }
 
-// Custom hook biar dipakainya tinggal: const { user, login } = useAuth()
 export function useAuth() {
   return useContext(AuthContext)
 }

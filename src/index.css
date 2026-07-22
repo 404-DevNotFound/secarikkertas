@@ -1,7 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Literata:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Literata', Georgia, serif;
+  background-color: #FAF6EC;
+  color: #2B2A28;
+  /* Tekstur kertas halus — noise sangat tipis, bukan gradient generik */
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(43,42,40,0.035) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+/* Garis bawah bergaya coretan tangan untuk elemen ditandai penting */
+.coret-bawah {
+  background-image: linear-gradient(#D98E3F, #D98E3F);
+  background-repeat: no-repeat;
+  background-size: 100% 6px;
+  background-position: 0 88%;
+}
+
+::selection {
+  background-color: #FBEBD6;
+  color: #2B2A28;
 }

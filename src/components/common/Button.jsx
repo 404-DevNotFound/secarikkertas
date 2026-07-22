@@ -1,13 +1,13 @@
 export default function Button({ children, variant = 'primary', ...props }) {
   const styles = {
-    primary: 'bg-slate-800 text-white hover:bg-slate-700',
-    outline: 'border border-slate-300 text-slate-700 hover:bg-slate-50',
-    danger: 'bg-red-500 text-white hover:bg-red-600',
+    primary: 'bg-tinta text-kertas hover:bg-stempel-dark',
+    outline: 'border border-tinta text-tinta hover:bg-tinta hover:text-kertas',
+    danger: 'bg-stabilo text-kertas hover:opacity-90',
   }
 
   return (
     <button
-      className={`px-4 py-2 rounded-lg font-medium transition-colors ${styles[variant]}`}
+      className={`px-5 py-2.5 font-baca text-sm transition-colors ${styles[variant]}`}
       {...props}
     >
       {children}
