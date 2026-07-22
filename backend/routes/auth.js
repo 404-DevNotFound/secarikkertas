@@ -7,16 +7,24 @@ import { requireAuth, SECRET } from '../middleware/auth.js'
 const router = express.Router()
 
 router.post('/register', async (req, res) => {
-  const { nama, email, password } = req.body
+  const { nama, username, password } = req.body
 
-  const sudahAda = await prisma.user.findUnique({ where: { email } })
+  // Validasi dasar biar username konsisten (huruf kecil, angka, underscore)
+  const usernameValid = /^[a-z0-9_]{3,20}$/.test(username || '')
+  if (!usernameValid) {
+    return res.status(400).json({
+      message: 'Username 3-20 karakter, hanya huruf kecil, angka, dan underscore',
+    })
+  }
+
+  const sudahAda = await prisma.user.findUnique({ where: { username } })
   if (sudahAda) {
-    return res.status(400).json({ message: 'Email sudah terdaftar' })
+    return res.status(400).json({ message: 'Username sudah dipakai' })
   }
 
   const hash = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({
-    data: { nama, email, password: hash, namaPena: nama },
+    data: { nama, username, password: hash, namaPena: nama },
   })
 
   const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: '7d' })
@@ -25,11 +33,11 @@ router.post('/register', async (req, res) => {
 })
 
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body
-  const user = await prisma.user.findUnique({ where: { email } })
+  const { username, password } = req.body
+  const user = await prisma.user.findUnique({ where: { username } })
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ message: 'Email atau kata sandi salah' })
+    return res.status(401).json({ message: 'Username atau kata sandi salah' })
   }
 
   const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: '7d' })
