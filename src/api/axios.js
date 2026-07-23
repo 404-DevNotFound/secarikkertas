@@ -1,11 +1,12 @@
 import axios from 'axios'
 
-// Development (npm run dev di komputermu): backend jalan terpisah di localhost:5000
-// Production (sudah live di internet): backend jadi satu domain lewat rewrites di vercel.json,
-// jadi cukup panggil "/api" tanpa perlu sebut domain penuh.
+// Development (npm run dev lokal): backend jalan terpisah di localhost:5000
+// Production (project frontend & backend TERPISAH di Vercel): butuh URL lengkap
+// backend, diatur lewat environment variable VITE_API_URL di Vercel
+// (Settings > Environment Variables project FRONTEND, bukan yang backend).
 const baseURL = import.meta.env.DEV
   ? 'http://localhost:5000/api'
-  : '/api'
+  : `${import.meta.env.VITE_API_URL}/api`
 
 const api = axios.create({ baseURL })
 
