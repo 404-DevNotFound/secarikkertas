@@ -5,13 +5,12 @@ import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// GET /api/posts?tipe=cerpen&q=kata-kunci&kategori=Horor
 router.get('/', async (req, res) => {
   const { tipe, q, kategori } = req.query
 
   const posts = await prisma.post.findMany({
     where: {
-      status: 'terbit', // hanya yang sudah disetujui admin yang tampil publik
+      status: 'terbit',
       ...(tipe && { tipe }),
       ...(kategori && { kategori }),
       ...(q && { judul: { contains: q, mode: 'insensitive' } }),
@@ -32,7 +31,6 @@ router.get('/', async (req, res) => {
   res.json(hasil)
 })
 
-// GET /api/posts/saya - semua naskah milik penulis, apapun statusnya
 router.get('/saya', requireAuth, async (req, res) => {
   const posts = await prisma.post.findMany({
     where: { penulisId: req.userId },
@@ -41,7 +39,6 @@ router.get('/saya', requireAuth, async (req, res) => {
   res.json(posts)
 })
 
-// GET /api/posts/:id
 router.get('/:id', async (req, res) => {
   const post = await prisma.post.findUnique({
     where: { id: req.params.id },
@@ -52,7 +49,6 @@ router.get('/:id', async (req, res) => {
   res.json({ ...post, penulis: post.penulis.namaPena })
 })
 
-// POST /api/posts - buat draft baru
 router.post('/', requireAuth, async (req, res) => {
   const { judul, tipe, kategori } = req.body
   const post = await prisma.post.create({
@@ -66,7 +62,6 @@ router.post('/', requireAuth, async (req, res) => {
   res.json(post)
 })
 
-// PUT /api/posts/:id/draft - auto-save, HANYA boleh kalau masih status draft/ditolak
 router.put('/:id/draft', requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
   if (!post || post.penulisId !== req.userId) {
@@ -93,7 +88,9 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
   res.json(updated)
 })
 
-// PUT /api/posts/:id/ajukan - penulis mengajukan naskah untuk ditinjau admin
+// PUT /api/posts/:id/ajukan
+// Kalau yang mengajukan adalah ADMIN, langsung terbit tanpa perlu tinjau diri sendiri.
+// Kalau penulis biasa, tetap masuk antrean "diajukan" untuk ditinjau admin lain.
 router.put('/:id/ajukan', requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
   if (!post || post.penulisId !== req.userId) {
@@ -103,14 +100,16 @@ router.put('/:id/ajukan', requireAuth, async (req, res) => {
     return res.status(400).json({ message: 'Lengkapi judul dan isi (minimal 50 karakter) sebelum mengajukan' })
   }
 
+  const user = await prisma.user.findUnique({ where: { id: req.userId } })
+  const statusBaru = user?.role === 'admin' ? 'terbit' : 'diajukan'
+
   const updated = await prisma.post.update({
     where: { id: req.params.id },
-    data: { status: 'diajukan' },
+    data: { status: statusBaru, catatanAdmin: '' },
   })
   res.json(updated)
 })
 
-// POST /api/posts/:id/like
 router.post('/:id/like', requireAuth, async (req, res) => {
   const { liked } = req.body
   const postId = req.params.id
@@ -129,7 +128,6 @@ router.post('/:id/like', requireAuth, async (req, res) => {
   res.json({ likes: jumlah })
 })
 
-// GET /api/posts/:id/comments
 router.get('/:id/comments', async (req, res) => {
   const comments = await prisma.comment.findMany({
     where: { postId: req.params.id },
@@ -143,7 +141,6 @@ router.get('/:id/comments', async (req, res) => {
   res.json(hasil)
 })
 
-// POST /api/posts/:id/comments
 router.post('/:id/comments', requireAuth, async (req, res) => {
   const { isi } = req.body
   if (!isi || !isi.trim()) {

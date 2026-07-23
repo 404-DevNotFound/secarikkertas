@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/axios'
 import Button from '../components/common/Button'
+import { useAuth } from '../context/AuthContext'
 
 const LABEL_STATUS = {
   draft: { teks: 'Draf', warna: 'bg-kertas-line text-tinta-soft' },
@@ -11,6 +12,8 @@ const LABEL_STATUS = {
 }
 
 export default function WriterDashboard() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [drafts, setDrafts] = useState([])
 
   useEffect(() => {
@@ -24,8 +27,8 @@ export default function WriterDashboard() {
 
   async function ajukan(id) {
     try {
-      await api.put(`/posts/${id}/ajukan`)
-      setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, status: 'diajukan' } : d)))
+      const res = await api.put(`/posts/${id}/ajukan`)
+      setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, status: res.data.status } : d)))
     } catch (err) {
       alert(err.response?.data?.message || 'Gagal mengajukan naskah')
     }
@@ -61,7 +64,7 @@ export default function WriterDashboard() {
                   onClick={() => ajukan(d.id)}
                   className="mt-3 font-mono text-xs uppercase text-stempel-dark underline"
                 >
-                  Ajukan untuk Ditinjau
+                  {isAdmin ? 'Terbitkan Langsung' : 'Ajukan untuk Ditinjau'}
                 </button>
               )}
             </div>
