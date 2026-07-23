@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import InputField from '../components/common/InputField'
-import PasswordField from '../components/common/PasswordField'
 import Button from '../components/common/Button'
 import Captcha from '../components/common/Captcha'
 
@@ -29,7 +28,7 @@ export default function LoginPage() {
       await login(username, password, captchaToken)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || 'Gagal terhubung ke server, coba lagi')
+      setError(err.response?.data?.message || 'Username atau kata sandi salah')
     } finally {
       setLoading(false)
     }
@@ -40,7 +39,7 @@ export default function LoginPage() {
       <h1 className="font-judul text-2xl font-semibold text-tinta mb-8">Masuk</h1>
       <form onSubmit={handleSubmit}>
         <InputField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-        <PasswordField label="Kata Sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <InputField label="Kata Sandi" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <Captcha onVerify={setCaptchaToken} />
         {error && <p className="font-mono text-xs text-stabilo mb-4">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full sm:w-auto">

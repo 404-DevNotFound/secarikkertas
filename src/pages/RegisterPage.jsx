@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import InputField from '../components/common/InputField'
-import PasswordField from '../components/common/PasswordField'
 import Button from '../components/common/Button'
 import Captcha from '../components/common/Captcha'
 
@@ -38,7 +37,7 @@ export default function RegisterPage() {
       await register(nama, username, password, captchaToken)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.message || 'Gagal terhubung ke server, coba lagi')
+      setError(err.response?.data?.message || 'Gagal mendaftar, coba lagi')
     } finally {
       setLoading(false)
     }
@@ -55,7 +54,7 @@ export default function RegisterPage() {
           onChange={(e) => setUsername(e.target.value.toLowerCase())}
           placeholder="huruf-kecil_angka"
         />
-        <PasswordField label="Kata Sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <InputField label="Kata Sandi" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <Captcha onVerify={setCaptchaToken} />
         {error && <p className="font-mono text-xs text-stabilo mb-4">{error}</p>}
         <Button type="submit" disabled={loading} className="w-full sm:w-auto">
