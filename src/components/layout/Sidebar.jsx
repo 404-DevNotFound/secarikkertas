@@ -2,7 +2,7 @@ export default function Sidebar({ kategori = [], kategoriAktif, onPilihKategori,
   return (
     <aside className="w-full md:w-60 shrink-0 space-y-10">
       <div>
-        <h3 className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint mb-3">
+        <h3 className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint mb-3 coret-bawah inline-block">
           Kategori
         </h3>
         <ul className="space-y-1 mt-2 flex md:block gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">

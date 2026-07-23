@@ -24,19 +24,31 @@ export default function Navbar() {
 
         {/* Menu desktop */}
         <div className="hidden md:flex items-center gap-6 font-mono text-[13px] uppercase tracking-wide">
-          <Link to="/" className="text-tinta-soft hover:text-stempel transition-colors">Beranda</Link>
+          <Link to="/" className="stabilo-hover text-tinta-soft hover:text-stempel transition-colors px-1 py-0.5">
+            Beranda
+          </Link>
           {user?.role === 'admin' && (
-            <Link to="/admin" className="text-stabilo hover:opacity-70 transition-colors">Admin</Link>
+            <Link to="/admin" className="stabilo-hover text-stabilo hover:opacity-70 transition-colors px-1 py-0.5">
+              Admin
+            </Link>
           )}
           {user ? (
             <>
-              <Link to="/dashboard" className="text-tinta-soft hover:text-stempel transition-colors">Dasbor</Link>
-              <Link to="/profile" className="text-tinta-soft hover:text-stempel transition-colors">Profil</Link>
-              <button onClick={logout} className="text-tinta-soft hover:text-stabilo transition-colors">Keluar</button>
+              <Link to="/dashboard" className="stabilo-hover text-tinta-soft hover:text-stempel transition-colors px-1 py-0.5">
+                Dasbor
+              </Link>
+              <Link to="/profile" className="stabilo-hover text-tinta-soft hover:text-stempel transition-colors px-1 py-0.5">
+                Profil
+              </Link>
+              <button onClick={logout} className="stabilo-hover text-tinta-soft hover:text-stabilo transition-colors px-1 py-0.5">
+                Keluar
+              </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-tinta-soft hover:text-stempel transition-colors">Masuk</Link>
+              <Link to="/login" className="stabilo-hover text-tinta-soft hover:text-stempel transition-colors px-1 py-0.5">
+                Masuk
+              </Link>
               <Link to="/register" className="px-4 py-2 bg-tinta text-kertas hover:bg-stempel-dark transition-colors normal-case font-baca text-sm not-italic">
                 Mulai Menulis
               </Link>

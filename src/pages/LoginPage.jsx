@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import InputField from '../components/common/InputField'
 import PasswordField from '../components/common/PasswordField'
@@ -9,11 +9,14 @@ import Captcha from '../components/common/Captcha'
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [captchaToken, setCaptchaToken] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const pesanSukses = location.state?.pesanSukses
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -38,6 +41,13 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <h1 className="font-judul text-2xl font-semibold text-tinta mb-8">Masuk</h1>
+
+      {pesanSukses && (
+        <p className="font-baca text-sm text-stempel-dark bg-stempel-light px-3 py-2 mb-6">
+          {pesanSukses}
+        </p>
+      )}
+
       <form onSubmit={handleSubmit}>
         <InputField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
         <PasswordField label="Kata Sandi" value={password} onChange={(e) => setPassword(e.target.value)} />

@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import api from '../api/axios'
 import InputField from '../components/common/InputField'
 import PasswordField from '../components/common/PasswordField'
 import Button from '../components/common/Button'
 import Captcha from '../components/common/Captcha'
 
 export default function RegisterPage() {
-  const { register } = useAuth()
   const navigate = useNavigate()
   const [nama, setNama] = useState('')
   const [username, setUsername] = useState('')
@@ -35,8 +34,11 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      await register(nama, username, password, captchaToken)
-      navigate('/dashboard')
+      // Panggil API register langsung (bukan lewat context), supaya TIDAK
+      // otomatis menyimpan token & login. Setelah berhasil daftar, arahkan
+      // ke halaman Login supaya user login manual dengan akun barunya.
+      await api.post('/auth/register', { nama, username, password, captchaToken })
+      navigate('/login', { state: { pesanSukses: 'Akun berhasil dibuat. Silakan masuk.' } })
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal terhubung ke server, coba lagi')
     } finally {
