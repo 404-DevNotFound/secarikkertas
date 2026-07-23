@@ -3,7 +3,7 @@ import api from '../api/axios'
 import CardPost from '../components/common/CardPost'
 import Sidebar from '../components/layout/Sidebar'
 
-const DAFTAR_KATEGORI = ['Romansa', 'Horor', 'Slice of Life', 'Coming ofAge']
+const DAFTAR_KATEGORI = ['Romansa', 'Horor', 'Slice of Life', 'Coming of Age']
 
 export default function HomePage() {
   const [posts, setPosts] = useState([])
