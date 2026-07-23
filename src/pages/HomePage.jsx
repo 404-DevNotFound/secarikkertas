@@ -12,7 +12,7 @@ export default function HomePage() {
   const [kategoriAktif, setKategoriAktif] = useState(null)
 
   useEffect(() => {
-    document.title = 'secarikkertas — Komunitas Cerpen & Artikel Kepenulisan'
+    document.title = 'secarikkertas'
   }, [])
 
   useEffect(() => {
