@@ -19,14 +19,14 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  async function login(username, password) {
-    const res = await api.post('/auth/login', { username, password })
+  async function login(username, password, captchaToken) {
+    const res = await api.post('/auth/login', { username, password, captchaToken })
     localStorage.setItem('token', res.data.token)
     setUser(res.data.user)
   }
 
-  async function register(nama, username, password) {
-    const res = await api.post('/auth/register', { nama, username, password })
+  async function register(nama, username, password, captchaToken) {
+    const res = await api.post('/auth/register', { nama, username, password, captchaToken })
     localStorage.setItem('token', res.data.token)
     setUser(res.data.user)
   }

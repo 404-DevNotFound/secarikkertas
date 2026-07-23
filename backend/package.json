@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "node --watch server.js",
     "postinstall": "prisma generate",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "buat-superadmin": "node scripts/createSuperadmin.js"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
@@ -13,7 +14,10 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2"
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "sanitize-html": "^2.13.0"
   },
   "devDependencies": {
     "prisma": "^5.20.0"

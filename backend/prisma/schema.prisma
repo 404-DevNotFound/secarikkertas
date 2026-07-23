@@ -14,7 +14,8 @@ model User {
   password  String
   namaPena  String
   bio       String    @default("")
-  role      String    @default("penulis")
+  role      String    @default("penulis") // "penulis" atau "admin"
+  banned    Boolean   @default(false)
   createdAt DateTime  @default(now())
 
   posts     Post[]
@@ -23,20 +24,24 @@ model User {
 }
 
 model Post {
-  id        String    @id @default(cuid())
-  judul     String
-  tipe      String    @default("cerpen")
-  isi       String    @default("")
-  isiHtml   String    @default("")
-  status    String    @default("draft")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  judul         String
+  tipe          String    @default("cerpen")
+  isi           String    @default("")
+  isiHtml       String    @default("")
+  // Alur status: draft -> diajukan -> terbit (disetujui admin)
+  //                              \-> ditolak (balik ke draft, dengan catatan)
+  status        String    @default("draft")
+  catatanAdmin  String    @default("")
+  kategori      String    @default("Umum")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  penulis   User      @relation(fields: [penulisId], references: [id])
-  penulisId String
+  penulis       User      @relation(fields: [penulisId], references: [id])
+  penulisId     String
 
-  comments  Comment[]
-  likes     Like[]
+  comments      Comment[]
+  likes         Like[]
 }
 
 model Comment {

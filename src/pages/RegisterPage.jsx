@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import InputField from '../components/common/InputField'
 import Button from '../components/common/Button'
+import Captcha from '../components/common/Captcha'
 
 export default function RegisterPage() {
   const { register } = useAuth()
@@ -10,7 +11,9 @@ export default function RegisterPage() {
   const [nama, setNama] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [captchaToken, setCaptchaToken] = useState(null)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -24,17 +27,24 @@ export default function RegisterPage() {
       setError('Kata sandi minimal 6 karakter')
       return
     }
+    if (!captchaToken) {
+      setError('Selesaikan verifikasi captcha terlebih dahulu')
+      return
+    }
 
+    setLoading(true)
     try {
-      await register(nama, username, password)
+      await register(nama, username, password, captchaToken)
       navigate('/dashboard')
     } catch (err) {
-      setError('Gagal mendaftar, username mungkin sudah dipakai')
+      setError(err.response?.data?.message || 'Gagal mendaftar, coba lagi')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="max-w-sm mx-auto px-6 py-20">
+    <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <h1 className="font-judul text-2xl font-semibold text-tinta mb-8">Daftar</h1>
       <form onSubmit={handleSubmit}>
         <InputField label="Nama" value={nama} onChange={(e) => setNama(e.target.value)} />
@@ -44,8 +54,12 @@ export default function RegisterPage() {
           onChange={(e) => setUsername(e.target.value.toLowerCase())}
           placeholder="huruf-kecil_angka"
         />
-        <InputField label="Kata Sandi" type="password" value={password} onChange={(e) => setPassword(e.target.value)} error={error} />
-        <Button type="submit">Daftar</Button>
+        <InputField label="Kata Sandi" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Captcha onVerify={setCaptchaToken} />
+        {error && <p className="font-mono text-xs text-stabilo mb-4">{error}</p>}
+        <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+          {loading ? 'Memproses...' : 'Daftar'}
+        </Button>
       </form>
       <p className="font-baca text-sm text-tinta-soft mt-6">
         Sudah punya akun? <Link to="/login" className="text-stempel-dark underline">Masuk</Link>

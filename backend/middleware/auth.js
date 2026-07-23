@@ -16,4 +16,15 @@ export function requireAuth(req, res, next) {
   }
 }
 
+// Dipakai SETELAH requireAuth, cek role user dari database
+export function requireAdmin(prisma) {
+  return async (req, res, next) => {
+    const user = await prisma.user.findUnique({ where: { id: req.userId } })
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Akses ditolak, khusus admin' })
+    }
+    next()
+  }
+}
+
 export { SECRET }
