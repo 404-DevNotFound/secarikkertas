@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../api/axios'
+import ConfirmModal from '../components/common/ConfirmModal'
+import Toast from '../components/common/Toast'
 
 export default function AdminDashboard() {
   const [tab, setTab] = useState('naskah')
@@ -7,6 +9,8 @@ export default function AdminDashboard() {
   const [naskah, setNaskah] = useState([])
   const [users, setUsers] = useState([])
   const [catatanTolak, setCatatanTolak] = useState({})
+  const [targetHapus, setTargetHapus] = useState(null) // { id, username } | null
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     api.get('/admin/stats').then((res) => setStats(res.data))
@@ -23,33 +27,42 @@ export default function AdminDashboard() {
   async function setujui(id) {
     await api.put(`/admin/naskah/${id}/setujui`)
     setNaskah((prev) => prev.filter((n) => n.id !== id))
+    setToast({ message: 'Naskah berhasil disetujui dan diterbitkan.', type: 'sukses' })
   }
 
   async function tolak(id) {
     await api.put(`/admin/naskah/${id}/tolak`, { catatan: catatanTolak[id] || '' })
     setNaskah((prev) => prev.filter((n) => n.id !== id))
+    setToast({ message: 'Naskah ditolak.', type: 'sukses' })
   }
 
   async function toggleBan(id, banned) {
     await api.put(`/admin/users/${id}/banned`, { banned: !banned })
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, banned: !banned } : u)))
+    setToast({ message: !banned ? 'Akun diblokir.' : 'Blokir dibuka.', type: 'sukses' })
   }
 
   async function ubahRole(id, role) {
     const roleBaru = role === 'admin' ? 'penulis' : 'admin'
     await api.put(`/admin/users/${id}/role`, { role: roleBaru })
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: roleBaru } : u)))
+    setToast({ message: `Role diubah jadi ${roleBaru}.`, type: 'sukses' })
   }
 
-  async function hapusUser(id, username) {
-    if (!confirm(`Hapus akun "${username}" secara permanen? Semua tulisan, komentar, dan like miliknya juga akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.`)) {
-      return
-    }
+  function mintaKonfirmasiHapus(id, username) {
+    setTargetHapus({ id, username })
+  }
+
+  async function konfirmasiHapusUser() {
+    if (!targetHapus) return
     try {
-      await api.delete(`/admin/users/${id}`)
-      setUsers((prev) => prev.filter((u) => u.id !== id))
+      await api.delete(`/admin/users/${targetHapus.id}`)
+      setUsers((prev) => prev.filter((u) => u.id !== targetHapus.id))
+      setToast({ message: `Akun "${targetHapus.username}" berhasil dihapus.`, type: 'sukses' })
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menghapus akun')
+      setToast({ message: err.response?.data?.message || 'Gagal menghapus akun', type: 'error' })
+    } finally {
+      setTargetHapus(null)
     }
   }
 
@@ -140,10 +153,9 @@ export default function AdminDashboard() {
                     <button onClick={() => toggleBan(u.id, u.banned)} className="text-xs underline text-stabilo">
                       {u.banned ? 'Buka Blokir' : 'Blokir'}
                     </button>
-                    {/* Tombol hapus TIDAK muncul untuk akun admin — dilindungi juga di backend */}
                     {u.role !== 'admin' && (
                       <button
-                        onClick={() => hapusUser(u.id, u.username)}
+                        onClick={() => mintaKonfirmasiHapus(u.id, u.username)}
                         className="text-xs underline text-red-600"
                       >
                         Hapus Akun
@@ -156,6 +168,17 @@ export default function AdminDashboard() {
           </table>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!targetHapus}
+        title="Hapus Akun?"
+        message={`Akun "${targetHapus?.username}" beserta semua tulisan, komentar, dan like miliknya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.`}
+        confirmText="Hapus"
+        onConfirm={konfirmasiHapusUser}
+        onCancel={() => setTargetHapus(null)}
+      />
+
+      <Toast message={toast?.message} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   )
 }

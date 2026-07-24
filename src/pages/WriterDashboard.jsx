@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/axios'
 import Button from '../components/common/Button'
+import ConfirmModal from '../components/common/ConfirmModal'
+import Toast from '../components/common/Toast'
 import { useAuth } from '../context/AuthContext'
 
 const LABEL_STATUS = {
@@ -15,6 +17,8 @@ export default function WriterDashboard() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const [drafts, setDrafts] = useState([])
+  const [targetHapus, setTargetHapus] = useState(null) // { id, judul } | null
+  const [toast, setToast] = useState(null) // { message, type }
 
   useEffect(() => {
     api.get('/posts/saya').then((res) => setDrafts(res.data))
@@ -29,18 +33,31 @@ export default function WriterDashboard() {
     try {
       const res = await api.put(`/posts/${id}/ajukan`)
       setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, status: res.data.status } : d)))
+      setToast({
+        message: isAdmin ? 'Naskah berhasil diterbitkan.' : 'Naskah berhasil diajukan untuk ditinjau.',
+        type: 'sukses',
+      })
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal mengajukan naskah')
+      setToast({ message: err.response?.data?.message || 'Gagal mengajukan naskah', type: 'error' })
     }
   }
 
-  async function hapusDraf(id, judul) {
-    if (!confirm(`Hapus draf "${judul}"? Tindakan ini tidak bisa dibatalkan.`)) return
+  // Buka popup konfirmasi, belum benar-benar menghapus
+  function mintaKonfirmasiHapus(id, judul) {
+    setTargetHapus({ id, judul })
+  }
+
+  // Dipanggil setelah user klik "Hapus" di popup konfirmasi
+  async function konfirmasiHapus() {
+    if (!targetHapus) return
     try {
-      await api.delete(`/posts/${id}`)
-      setDrafts((prev) => prev.filter((d) => d.id !== id))
+      await api.delete(`/posts/${targetHapus.id}`)
+      setDrafts((prev) => prev.filter((d) => d.id !== targetHapus.id))
+      setToast({ message: `Draf "${targetHapus.judul}" berhasil dihapus.`, type: 'sukses' })
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menghapus draf')
+      setToast({ message: err.response?.data?.message || 'Gagal menghapus draf', type: 'error' })
+    } finally {
+      setTargetHapus(null)
     }
   }
 
@@ -79,7 +96,7 @@ export default function WriterDashboard() {
                     {isAdmin ? 'Terbitkan Langsung' : 'Ajukan untuk Ditinjau'}
                   </button>
                   <button
-                    onClick={() => hapusDraf(d.id, d.judul)}
+                    onClick={() => mintaKonfirmasiHapus(d.id, d.judul)}
                     className="font-mono text-xs uppercase text-red-600 underline"
                   >
                     Hapus Draf
@@ -93,6 +110,17 @@ export default function WriterDashboard() {
           <p className="font-baca italic text-tinta-faint">Belum ada tulisan. Mulai menulis sekarang.</p>
         )}
       </div>
+
+      <ConfirmModal
+        open={!!targetHapus}
+        title="Hapus Draf?"
+        message={`Draf "${targetHapus?.judul}" akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.`}
+        confirmText="Hapus"
+        onConfirm={konfirmasiHapus}
+        onCancel={() => setTargetHapus(null)}
+      />
+
+      <Toast message={toast?.message} type={toast?.type} onClose={() => setToast(null)} />
     </div>
   )
 }
