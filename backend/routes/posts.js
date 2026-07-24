@@ -4,16 +4,13 @@ import sanitizeHtml from 'sanitize-html'
 import mammoth from 'mammoth'
 import pdfParse from 'pdf-parse'
 import prisma from '../data/prisma.js'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, optionalAuth } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// File disimpan sementara di memori (bukan disk) — pas untuk lingkungan
-// serverless Vercel yang filesystem-nya tidak permanen. Kita cuma perlu
-// baca isinya sebentar untuk diubah jadi teks, tidak perlu disimpan sebagai file.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // maks 10MB
+  limits: { fileSize: 10 * 1024 * 1024 },
 })
 
 router.get('/', async (req, res) => {
@@ -37,6 +34,7 @@ router.get('/', async (req, res) => {
     ringkasan: p.isi.slice(0, 120),
     likes: p.likes.length,
     kategori: p.kategori,
+    tipe: p.tipe,
   }))
 
   res.json(hasil)
@@ -99,9 +97,6 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
   res.json(updated)
 })
 
-// DELETE /api/posts/:id - penulis hapus draf/naskah ditolak milik sendiri
-// (bukan yang sedang diajukan/terbit, supaya tidak ada yang "hilang mendadak"
-// dari antrean tinjauan admin atau dari halaman publik).
 router.delete('/:id', requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
   if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
@@ -109,7 +104,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
     return res.status(403).json({ message: 'Tidak diizinkan' })
   }
   if (!['draft', 'ditolak'].includes(post.status)) {
-    return res.status(400).json({ message: 'Hanya draf atau naskah ditolak yang bisa dihapus' })
+    // Naskah yang sudah terbit HANYA bisa dihapus admin (lewat /api/admin/posts/:id)
+    return res.status(400).json({ message: 'Naskah yang sudah terbit hanya bisa dihapus oleh admin' })
   }
 
   await prisma.post.delete({ where: { id: req.params.id } })
@@ -135,8 +131,6 @@ router.put('/:id/ajukan', requireAuth, async (req, res) => {
   res.json(updated)
 })
 
-// POST /api/posts/:id/import - upload file .docx atau .pdf, otomatis
-// diekstrak jadi teks dan langsung mengisi draf (menimpa isi yang lama).
 router.post('/:id/import', requireAuth, upload.single('file'), async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
   if (!post || post.penulisId !== req.userId) {
@@ -171,7 +165,6 @@ router.post('/:id/import', requireAuth, upload.single('file'), async (req, res) 
     return res.status(400).json({ message: 'File tidak berisi teks yang bisa dibaca (mungkin hasil scan gambar)' })
   }
 
-  // Ubah paragraf jadi tag <p>, lalu sanitasi seperti draft biasa (NFR-03)
   const paragraf = teksMentah
     .split(/\n{1,}/)
     .map((p) => p.trim())
@@ -217,13 +210,19 @@ router.get('/:id/comments', async (req, res) => {
   })
 
   const hasil = comments.map((c) => ({
-    id: c.id, isi: c.isi, nama: c.user.namaPena, waktu: c.createdAt,
+    id: c.id,
+    isi: c.isi,
+    nama: c.user ? c.user.namaPena : (c.namaTamu || 'Anonim'),
+    waktu: c.createdAt,
+    anonim: !c.user,
   }))
   res.json(hasil)
 })
 
-router.post('/:id/comments', requireAuth, async (req, res) => {
-  const { isi } = req.body
+// POST /api/posts/:id/comments - SEKARANG BOLEH TANPA LOGIN (anonim)
+// optionalAuth: kalau ada token valid, req.userId keisi; kalau tidak, null.
+router.post('/:id/comments', optionalAuth, async (req, res) => {
+  const { isi, namaTamu } = req.body
   if (!isi || !isi.trim()) {
     return res.status(400).json({ message: 'Komentar tidak boleh kosong' })
   }
@@ -231,12 +230,23 @@ router.post('/:id/comments', requireAuth, async (req, res) => {
   const isiBersih = sanitizeHtml(isi.trim(), { allowedTags: [], allowedAttributes: {} })
 
   const comment = await prisma.comment.create({
-    data: { isi: isiBersih, postId: req.params.id, userId: req.userId },
+    data: {
+      isi: isiBersih,
+      postId: req.params.id,
+      userId: req.userId || null,
+      // Kalau tidak login, pakai nama yang diketik (dibersihkan juga),
+      // atau "Anonim" kalau kosong.
+      namaTamu: req.userId ? null : (sanitizeHtml((namaTamu || '').trim(), { allowedTags: [], allowedAttributes: {} }) || 'Anonim'),
+    },
     include: { user: true },
   })
 
   res.json({
-    id: comment.id, isi: comment.isi, nama: comment.user.namaPena, waktu: comment.createdAt,
+    id: comment.id,
+    isi: comment.isi,
+    nama: comment.user ? comment.user.namaPena : (comment.namaTamu || 'Anonim'),
+    waktu: comment.createdAt,
+    anonim: !comment.user,
   })
 })
 

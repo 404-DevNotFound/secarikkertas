@@ -35,7 +35,6 @@ model Post {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // onDelete: Cascade -> kalau User dihapus, semua Post miliknya ikut terhapus otomatis
   penulis       User      @relation(fields: [penulisId], references: [id], onDelete: Cascade)
   penulisId     String
 
@@ -46,14 +45,14 @@ model Post {
 model Comment {
   id        String   @id @default(cuid())
   isi       String
+  namaTamu  String?
   createdAt DateTime @default(now())
 
-  // onDelete: Cascade -> kalau Post/User dihapus, komentar terkait ikut terhapus otomatis
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
 }
 
 model Like {
