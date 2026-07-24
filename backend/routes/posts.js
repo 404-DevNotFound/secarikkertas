@@ -1,9 +1,20 @@
 import express from 'express'
+import multer from 'multer'
 import sanitizeHtml from 'sanitize-html'
+import mammoth from 'mammoth'
+import pdfParse from 'pdf-parse'
 import prisma from '../data/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
+
+// File disimpan sementara di memori (bukan disk) — pas untuk lingkungan
+// serverless Vercel yang filesystem-nya tidak permanen. Kita cuma perlu
+// baca isinya sebentar untuk diubah jadi teks, tidak perlu disimpan sebagai file.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // maks 10MB
+})
 
 router.get('/', async (req, res) => {
   const { tipe, q, kategori } = req.query
@@ -88,9 +99,23 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
   res.json(updated)
 })
 
-// PUT /api/posts/:id/ajukan
-// Kalau yang mengajukan adalah ADMIN, langsung terbit tanpa perlu tinjau diri sendiri.
-// Kalau penulis biasa, tetap masuk antrean "diajukan" untuk ditinjau admin lain.
+// DELETE /api/posts/:id - penulis hapus draf/naskah ditolak milik sendiri
+// (bukan yang sedang diajukan/terbit, supaya tidak ada yang "hilang mendadak"
+// dari antrean tinjauan admin atau dari halaman publik).
+router.delete('/:id', requireAuth, async (req, res) => {
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
+  if (post.penulisId !== req.userId) {
+    return res.status(403).json({ message: 'Tidak diizinkan' })
+  }
+  if (!['draft', 'ditolak'].includes(post.status)) {
+    return res.status(400).json({ message: 'Hanya draf atau naskah ditolak yang bisa dihapus' })
+  }
+
+  await prisma.post.delete({ where: { id: req.params.id } })
+  res.json({ message: 'Draf dihapus' })
+})
+
 router.put('/:id/ajukan', requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
   if (!post || post.penulisId !== req.userId) {
@@ -106,6 +131,62 @@ router.put('/:id/ajukan', requireAuth, async (req, res) => {
   const updated = await prisma.post.update({
     where: { id: req.params.id },
     data: { status: statusBaru, catatanAdmin: '' },
+  })
+  res.json(updated)
+})
+
+// POST /api/posts/:id/import - upload file .docx atau .pdf, otomatis
+// diekstrak jadi teks dan langsung mengisi draf (menimpa isi yang lama).
+router.post('/:id/import', requireAuth, upload.single('file'), async (req, res) => {
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!post || post.penulisId !== req.userId) {
+    return res.status(403).json({ message: 'Tidak diizinkan' })
+  }
+  if (!['draft', 'ditolak'].includes(post.status)) {
+    return res.status(400).json({ message: 'Naskah sedang ditinjau/terbit, tidak bisa diedit' })
+  }
+  if (!req.file) {
+    return res.status(400).json({ message: 'Tidak ada file yang diunggah' })
+  }
+
+  const namaFile = req.file.originalname.toLowerCase()
+  let teksMentah = ''
+
+  try {
+    if (namaFile.endsWith('.docx')) {
+      const hasil = await mammoth.extractRawText({ buffer: req.file.buffer })
+      teksMentah = hasil.value
+    } else if (namaFile.endsWith('.pdf')) {
+      const hasil = await pdfParse(req.file.buffer)
+      teksMentah = hasil.text
+    } else {
+      return res.status(400).json({ message: 'Format file harus .docx atau .pdf' })
+    }
+  } catch (err) {
+    console.error('Gagal parsing file:', err)
+    return res.status(400).json({ message: 'Gagal membaca isi file, pastikan file tidak rusak' })
+  }
+
+  if (!teksMentah || !teksMentah.trim()) {
+    return res.status(400).json({ message: 'File tidak berisi teks yang bisa dibaca (mungkin hasil scan gambar)' })
+  }
+
+  // Ubah paragraf jadi tag <p>, lalu sanitasi seperti draft biasa (NFR-03)
+  const paragraf = teksMentah
+    .split(/\n{1,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${p}</p>`)
+    .join('')
+
+  const isiHtml = sanitizeHtml(paragraf, {
+    allowedTags: ['p', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li'],
+    allowedAttributes: {},
+  })
+
+  const updated = await prisma.post.update({
+    where: { id: req.params.id },
+    data: { isi: teksMentah, isiHtml },
   })
   res.json(updated)
 })

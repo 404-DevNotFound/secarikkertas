@@ -14,7 +14,7 @@ model User {
   password  String
   namaPena  String
   bio       String    @default("")
-  role      String    @default("penulis") // "penulis" atau "admin"
+  role      String    @default("penulis")
   banned    Boolean   @default(false)
   createdAt DateTime  @default(now())
 
@@ -29,15 +29,14 @@ model Post {
   tipe          String    @default("cerpen")
   isi           String    @default("")
   isiHtml       String    @default("")
-  // Alur status: draft -> diajukan -> terbit (disetujui admin)
-  //                              \-> ditolak (balik ke draft, dengan catatan)
   status        String    @default("draft")
   catatanAdmin  String    @default("")
   kategori      String    @default("Umum")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  penulis       User      @relation(fields: [penulisId], references: [id])
+  // onDelete: Cascade -> kalau User dihapus, semua Post miliknya ikut terhapus otomatis
+  penulis       User      @relation(fields: [penulisId], references: [id], onDelete: Cascade)
   penulisId     String
 
   comments      Comment[]
@@ -49,20 +48,21 @@ model Comment {
   isi       String
   createdAt DateTime @default(now())
 
-  post      Post     @relation(fields: [postId], references: [id])
+  // onDelete: Cascade -> kalau Post/User dihapus, komentar terkait ikut terhapus otomatis
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
 
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
 }
 
 model Like {
   id     String @id @default(cuid())
 
-  post   Post   @relation(fields: [postId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId String
 
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
   @@unique([postId, userId])

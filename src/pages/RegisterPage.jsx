@@ -34,9 +34,6 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      // Panggil API register langsung (bukan lewat context), supaya TIDAK
-      // otomatis menyimpan token & login. Setelah berhasil daftar, arahkan
-      // ke halaman Login supaya user login manual dengan akun barunya.
       await api.post('/auth/register', { nama, username, password, captchaToken })
       navigate('/login', { state: { pesanSukses: 'Akun berhasil dibuat. Silakan masuk.' } })
     } catch (err) {
@@ -55,7 +52,6 @@ export default function RegisterPage() {
           label="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value.toLowerCase())}
-          placeholder="huruf-kecil_angka"
         />
         <PasswordField label="Kata Sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
         <Captcha onVerify={setCaptchaToken} />

@@ -34,6 +34,16 @@ export default function WriterDashboard() {
     }
   }
 
+  async function hapusDraf(id, judul) {
+    if (!confirm(`Hapus draf "${judul}"? Tindakan ini tidak bisa dibatalkan.`)) return
+    try {
+      await api.delete(`/posts/${id}`)
+      setDrafts((prev) => prev.filter((d) => d.id !== id))
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menghapus draf')
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
@@ -44,6 +54,7 @@ export default function WriterDashboard() {
       <div className="space-y-3">
         {drafts.map((d) => {
           const status = LABEL_STATUS[d.status] || LABEL_STATUS.draft
+          const bisaDihapus = ['draft', 'ditolak'].includes(d.status)
           return (
             <div key={d.id} className="bg-white p-4 border border-kertas-line">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
@@ -59,13 +70,21 @@ export default function WriterDashboard() {
                 <p className="font-baca text-sm text-red-600 mt-2">Catatan admin: {d.catatanAdmin}</p>
               )}
 
-              {['draft', 'ditolak'].includes(d.status) && (
-                <button
-                  onClick={() => ajukan(d.id)}
-                  className="mt-3 font-mono text-xs uppercase text-stempel-dark underline"
-                >
-                  {isAdmin ? 'Terbitkan Langsung' : 'Ajukan untuk Ditinjau'}
-                </button>
+              {bisaDihapus && (
+                <div className="flex flex-wrap gap-4 mt-3">
+                  <button
+                    onClick={() => ajukan(d.id)}
+                    className="font-mono text-xs uppercase text-stempel-dark underline"
+                  >
+                    {isAdmin ? 'Terbitkan Langsung' : 'Ajukan untuk Ditinjau'}
+                  </button>
+                  <button
+                    onClick={() => hapusDraf(d.id, d.judul)}
+                    className="font-mono text-xs uppercase text-red-600 underline"
+                  >
+                    Hapus Draf
+                  </button>
+                </div>
               )}
             </div>
           )

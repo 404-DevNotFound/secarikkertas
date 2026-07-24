@@ -5,7 +5,6 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js'
 const router = express.Router()
 router.use(requireAuth, requireAdmin(prisma))
 
-// GET /api/admin/stats
 router.get('/stats', async (req, res) => {
   const [totalUser, totalPost, totalTerbit, totalDiajukan, totalComment] = await Promise.all([
     prisma.user.count(),
@@ -17,7 +16,6 @@ router.get('/stats', async (req, res) => {
   res.json({ totalUser, totalPost, totalTerbit, totalDiajukan, totalComment })
 })
 
-// GET /api/admin/users
 router.get('/users', async (req, res) => {
   const users = await prisma.user.findMany({
     select: {
@@ -29,7 +27,6 @@ router.get('/users', async (req, res) => {
   res.json(users)
 })
 
-// PUT /api/admin/users/:id/role  { role: "admin" | "penulis" }
 router.put('/users/:id/role', async (req, res) => {
   const { role } = req.body
   if (!['admin', 'penulis'].includes(role)) {
@@ -39,14 +36,31 @@ router.put('/users/:id/role', async (req, res) => {
   res.json({ id: user.id, role: user.role })
 })
 
-// PUT /api/admin/users/:id/banned  { banned: true|false }
 router.put('/users/:id/banned', async (req, res) => {
   const { banned } = req.body
   const user = await prisma.user.update({ where: { id: req.params.id }, data: { banned: !!banned } })
   res.json({ id: user.id, banned: user.banned })
 })
 
-// GET /api/admin/naskah?status=diajukan - antrian naskah menunggu tinjauan
+// DELETE /api/admin/users/:id - hapus akun PERMANEN dari database
+// Berkat onDelete: Cascade di schema.prisma, semua post/komentar/like
+// milik user ini ikut otomatis terhapus, tidak perlu dibersihkan manual.
+router.delete('/users/:id', async (req, res) => {
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } })
+  if (!target) return res.status(404).json({ message: 'User tidak ditemukan' })
+
+  // Akun admin (siapapun, termasuk diri sendiri) tidak boleh dihapus lewat sini —
+  // supaya tidak ada risiko semua admin ke-hapus dan tidak ada yang bisa kelola web lagi.
+  // Kalau memang perlu turunkan/hapus admin, turunkan dulu role-nya jadi "penulis"
+  // lewat tombol "Turunkan", baru bisa dihapus.
+  if (target.role === 'admin') {
+    return res.status(400).json({ message: 'Akun admin tidak bisa dihapus. Turunkan role-nya dulu jika diperlukan.' })
+  }
+
+  await prisma.user.delete({ where: { id: req.params.id } })
+  res.json({ message: `Akun "${target.username}" berhasil dihapus permanen` })
+})
+
 router.get('/naskah', async (req, res) => {
   const { status } = req.query
   const posts = await prisma.post.findMany({
@@ -57,7 +71,6 @@ router.get('/naskah', async (req, res) => {
   res.json(posts)
 })
 
-// PUT /api/admin/naskah/:id/setujui
 router.put('/naskah/:id/setujui', async (req, res) => {
   const post = await prisma.post.update({
     where: { id: req.params.id },
@@ -66,7 +79,6 @@ router.put('/naskah/:id/setujui', async (req, res) => {
   res.json(post)
 })
 
-// PUT /api/admin/naskah/:id/tolak  { catatan: "..." }
 router.put('/naskah/:id/tolak', async (req, res) => {
   const { catatan } = req.body
   const post = await prisma.post.update({
@@ -76,15 +88,11 @@ router.put('/naskah/:id/tolak', async (req, res) => {
   res.json(post)
 })
 
-// DELETE /api/admin/posts/:id - moderasi konten melanggar
 router.delete('/posts/:id', async (req, res) => {
-  await prisma.comment.deleteMany({ where: { postId: req.params.id } })
-  await prisma.like.deleteMany({ where: { postId: req.params.id } })
   await prisma.post.delete({ where: { id: req.params.id } })
   res.json({ message: 'Naskah dihapus' })
 })
 
-// DELETE /api/admin/comments/:id
 router.delete('/comments/:id', async (req, res) => {
   await prisma.comment.delete({ where: { id: req.params.id } })
   res.json({ message: 'Komentar dihapus' })

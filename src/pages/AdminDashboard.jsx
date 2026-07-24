@@ -41,6 +41,18 @@ export default function AdminDashboard() {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: roleBaru } : u)))
   }
 
+  async function hapusUser(id, username) {
+    if (!confirm(`Hapus akun "${username}" secara permanen? Semua tulisan, komentar, dan like miliknya juga akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.`)) {
+      return
+    }
+    try {
+      await api.delete(`/admin/users/${id}`)
+      setUsers((prev) => prev.filter((u) => u.id !== id))
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menghapus akun')
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <h1 className="font-judul text-2xl font-semibold text-tinta mb-6">Panel Admin</h1>
@@ -106,7 +118,7 @@ export default function AdminDashboard() {
 
       {tab === 'user' && (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm font-baca min-w-[500px]">
+          <table className="w-full text-sm font-baca min-w-[600px]">
             <thead>
               <tr className="text-left font-mono text-[10px] uppercase text-tinta-faint border-b border-kertas-line">
                 <th className="py-2 pr-2">Username</th>
@@ -121,13 +133,22 @@ export default function AdminDashboard() {
                   <td className="py-2 pr-2">{u.username}</td>
                   <td className="py-2 pr-2">{u.role}</td>
                   <td className="py-2 pr-2">{u.banned ? 'Diblokir' : 'Aktif'}</td>
-                  <td className="py-2 flex flex-wrap gap-2">
+                  <td className="py-2 flex flex-wrap gap-3">
                     <button onClick={() => ubahRole(u.id, u.role)} className="text-xs underline text-stempel-dark">
                       {u.role === 'admin' ? 'Turunkan' : 'Jadikan Admin'}
                     </button>
                     <button onClick={() => toggleBan(u.id, u.banned)} className="text-xs underline text-stabilo">
                       {u.banned ? 'Buka Blokir' : 'Blokir'}
                     </button>
+                    {/* Tombol hapus TIDAK muncul untuk akun admin — dilindungi juga di backend */}
+                    {u.role !== 'admin' && (
+                      <button
+                        onClick={() => hapusUser(u.id, u.username)}
+                        className="text-xs underline text-red-600"
+                      >
+                        Hapus Akun
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
