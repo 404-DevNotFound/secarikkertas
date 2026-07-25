@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../api/axios'
 import CommentSection from '../components/feature/CommentSection'
 import Toast from '../components/common/Toast'
+import MusicToggle from '../components/feature/MusicToggle'
 
 export default function ReadPostPage() {
   const { id } = useParams()
@@ -32,6 +33,7 @@ export default function ReadPostPage() {
 
   return (
     <article className="max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+      <MusicToggle />
       <Link to="/" className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint hover:text-stempel-dark transition-colors">
         ← Kembali ke Beranda
       </Link>

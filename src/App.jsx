@@ -7,7 +7,6 @@ import AdminRoute from './routes/AdminRoute'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import Ribbon from './components/layout/Ribbon'
-import Pencil from './components/layout/Pencil'
 
 import CoverPage from './pages/CoverPage'
 import HomePage from './pages/HomePage'
@@ -55,12 +54,14 @@ function App() {
               panjangnya beda-beda tiap halaman, lihat Ribbon.jsx */}
           <Ribbon />
 
-          {/* Pensil dekoratif melintang di lipatan tengah buku, sama di semua halaman */}
-          <Pencil />
-
-          {/* Buku besar — sekarang mengisi seluruh viewport (100vh),
-              bukan lagi kartu mengambang di atas latar. */}
-          <div className="w-full h-screen flex flex-col overflow-hidden">
+          {/* Buku besar — sekarang mengisi seluruh viewport (100vh), bukan lagi
+              kartu mengambang di atas latar. Kursor kustom bentuk pensil dipasang
+              di sini supaya berlaku di seluruh halaman buku (link/tombol tetap
+              pakai kursor pointer bawaan browser, tidak ketimpa). */}
+          <div
+            className="w-full h-screen flex flex-col overflow-hidden"
+            style={{ cursor: "url('/cursor-pensil.svg') 22 22, auto" }}
+          >
             <Navbar />
 
             <main className="flex-1 min-h-0 overflow-y-auto scroll-halus">

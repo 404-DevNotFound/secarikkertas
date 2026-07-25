@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">
+  <g transform="rotate(-45 12 12)">
+    <!-- Penghapus -->
+    <rect x="9" y="1.5" width="6" height="4.5" rx="1.4" fill="#E7A6AE" stroke="#B9707A" stroke-width="0.4" />
+    <!-- Klip logam -->
+    <rect x="9" y="6" width="6" height="2.4" fill="#D8D3C4" stroke="#9B9682" stroke-width="0.3" />
+    <!-- Badan kayu kuning -->
+    <rect x="9" y="8.4" width="6" height="9" fill="#F0BE4A" stroke="#8B5E3C" stroke-width="0.4" />
+    <!-- Ujung diraut -->
+    <polygon points="9,17.4 15,17.4 12,21.2" fill="#E8C68C" stroke="#8B5E3C" stroke-width="0.4" />
+    <!-- Ujung grafit -->
+    <polygon points="11,21.2 13,21.2 12,23" fill="#3A322B" />
+  </g>
+</svg>
