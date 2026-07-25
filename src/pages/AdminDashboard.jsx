@@ -7,9 +7,11 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState('naskah')
   const [stats, setStats] = useState(null)
   const [naskah, setNaskah] = useState([])
+  const [terbit, setTerbit] = useState([])
   const [users, setUsers] = useState([])
   const [catatanTolak, setCatatanTolak] = useState({})
-  const [targetHapus, setTargetHapus] = useState(null) // { id, username } | null
+  const [targetHapusUser, setTargetHapusUser] = useState(null)
+  const [targetHapusPost, setTargetHapusPost] = useState(null)
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
@@ -19,6 +21,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (tab === 'naskah') {
       api.get('/admin/naskah', { params: { status: 'diajukan' } }).then((res) => setNaskah(res.data))
+    } else if (tab === 'terbit') {
+      api.get('/admin/naskah', { params: { status: 'terbit' } }).then((res) => setTerbit(res.data))
     } else if (tab === 'user') {
       api.get('/admin/users').then((res) => setUsers(res.data))
     }
@@ -49,20 +53,29 @@ export default function AdminDashboard() {
     setToast({ message: `Role diubah jadi ${roleBaru}.`, type: 'sukses' })
   }
 
-  function mintaKonfirmasiHapus(id, username) {
-    setTargetHapus({ id, username })
-  }
-
   async function konfirmasiHapusUser() {
-    if (!targetHapus) return
+    if (!targetHapusUser) return
     try {
-      await api.delete(`/admin/users/${targetHapus.id}`)
-      setUsers((prev) => prev.filter((u) => u.id !== targetHapus.id))
-      setToast({ message: `Akun "${targetHapus.username}" berhasil dihapus.`, type: 'sukses' })
+      await api.delete(`/admin/users/${targetHapusUser.id}`)
+      setUsers((prev) => prev.filter((u) => u.id !== targetHapusUser.id))
+      setToast({ message: `Akun "${targetHapusUser.username}" berhasil dihapus.`, type: 'sukses' })
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Gagal menghapus akun', type: 'error' })
     } finally {
-      setTargetHapus(null)
+      setTargetHapusUser(null)
+    }
+  }
+
+  async function konfirmasiHapusPost() {
+    if (!targetHapusPost) return
+    try {
+      await api.delete(`/admin/posts/${targetHapusPost.id}`)
+      setTerbit((prev) => prev.filter((p) => p.id !== targetHapusPost.id))
+      setToast({ message: `Naskah "${targetHapusPost.judul}" berhasil dihapus.`, type: 'sukses' })
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Gagal menghapus naskah', type: 'error' })
+    } finally {
+      setTargetHapusPost(null)
     }
   }
 
@@ -93,6 +106,12 @@ export default function AdminDashboard() {
           className={`px-4 py-2 border-b-2 whitespace-nowrap ${tab === 'naskah' ? 'border-stempel text-tinta' : 'border-transparent text-tinta-faint'}`}
         >
           Antrean Naskah
+        </button>
+        <button
+          onClick={() => setTab('terbit')}
+          className={`px-4 py-2 border-b-2 whitespace-nowrap ${tab === 'terbit' ? 'border-stempel text-tinta' : 'border-transparent text-tinta-faint'}`}
+        >
+          Naskah Terbit
         </button>
         <button
           onClick={() => setTab('user')}
@@ -129,6 +148,29 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {tab === 'terbit' && (
+        <div className="space-y-3">
+          <p className="font-baca text-sm text-tinta-faint italic mb-2">
+            Naskah yang sudah terbit hanya bisa dihapus dari sini (admin), penulis tidak bisa menghapusnya sendiri.
+          </p>
+          {terbit.length === 0 && <p className="font-baca italic text-tinta-faint">Belum ada naskah terbit.</p>}
+          {terbit.map((p) => (
+            <div key={p.id} className="bg-white p-4 border border-kertas-line flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <div className="min-w-0">
+                <p className="font-judul text-lg text-tinta truncate">{p.judul}</p>
+                <p className="font-mono text-[11px] text-tinta-faint">oleh {p.penulis.namaPena} · {p.kategori}</p>
+              </div>
+              <button
+                onClick={() => setTargetHapusPost({ id: p.id, judul: p.judul })}
+                className="font-mono text-xs uppercase text-red-600 underline shrink-0"
+              >
+                Hapus
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {tab === 'user' && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-baca min-w-[600px]">
@@ -155,7 +197,7 @@ export default function AdminDashboard() {
                     </button>
                     {u.role !== 'admin' && (
                       <button
-                        onClick={() => mintaKonfirmasiHapus(u.id, u.username)}
+                        onClick={() => setTargetHapusUser({ id: u.id, username: u.username })}
                         className="text-xs underline text-red-600"
                       >
                         Hapus Akun
@@ -170,12 +212,19 @@ export default function AdminDashboard() {
       )}
 
       <ConfirmModal
-        open={!!targetHapus}
+        open={!!targetHapusUser}
         title="Hapus Akun?"
-        message={`Akun "${targetHapus?.username}" beserta semua tulisan, komentar, dan like miliknya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.`}
-        confirmText="Hapus"
+        message={`Akun "${targetHapusUser?.username}" beserta semua tulisan, komentar, dan like miliknya akan dihapus permanen.`}
         onConfirm={konfirmasiHapusUser}
-        onCancel={() => setTargetHapus(null)}
+        onCancel={() => setTargetHapusUser(null)}
+      />
+
+      <ConfirmModal
+        open={!!targetHapusPost}
+        title="Hapus Naskah?"
+        message={`Naskah "${targetHapusPost?.judul}" akan dihapus permanen dari halaman publik, beserta komentar dan like-nya.`}
+        onConfirm={konfirmasiHapusPost}
+        onCancel={() => setTargetHapusPost(null)}
       />
 
       <Toast message={toast?.message} type={toast?.type} onClose={() => setToast(null)} />

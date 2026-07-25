@@ -48,7 +48,7 @@ export default function Navbar() {
               <Link to="/login" className="stabilo-hover text-kertas/80 hover:text-stabilo transition-colors px-1 py-0.5">
                 Masuk
               </Link>
-              <Link to="/register" className="px-4 py-2 bg-stempel text-kertas hover:bg-stempel-dark transition-colors normal-case font-baca text-sm not-italic">
+              <Link to="/register" className="px-4 py-2 bg-mustard text-tinta hover:opacity-90 transition-opacity normal-case font-baca text-sm not-italic font-medium">
                 Mulai Menulis
               </Link>
             </>
