@@ -21,17 +21,26 @@ const uploadGambar = multer({
 
 router.get('/', async (req, res) => {
   const { tipe, q, kategori } = req.query
+  const halaman = Math.max(1, parseInt(req.query.page, 10) || 1)
+  const batas = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 6))
 
-  const posts = await prisma.post.findMany({
-    where: {
-      status: 'terbit',
-      ...(tipe && { tipe }),
-      ...(kategori && { kategori }),
-      ...(q && { judul: { contains: q, mode: 'insensitive' } }),
-    },
-    include: { penulis: true, likes: true },
-    orderBy: { createdAt: 'desc' },
-  })
+  const where = {
+    status: 'terbit',
+    ...(tipe && { tipe }),
+    ...(kategori && { kategori }),
+    ...(q && { judul: { contains: q, mode: 'insensitive' } }),
+  }
+
+  const [posts, total] = await Promise.all([
+    prisma.post.findMany({
+      where,
+      include: { penulis: true, likes: true },
+      orderBy: { createdAt: 'desc' },
+      skip: (halaman - 1) * batas,
+      take: batas,
+    }),
+    prisma.post.count({ where }),
+  ])
 
   const hasil = posts.map((p) => ({
     id: p.id,
@@ -44,7 +53,12 @@ router.get('/', async (req, res) => {
     gambarSampul: p.gambarSampul,
   }))
 
-  res.json(hasil)
+  res.json({
+    data: hasil,
+    page: halaman,
+    totalPages: Math.max(1, Math.ceil(total / batas)),
+    total,
+  })
 })
 
 router.get('/saya', requireAuth, async (req, res) => {
