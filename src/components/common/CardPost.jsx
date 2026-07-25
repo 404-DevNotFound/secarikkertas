@@ -29,6 +29,24 @@ function formatTanggal(iso) {
   return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+// Ringkasan bisa berisi HTML mentah (mis. hasil editor kaya teks) —
+// buang semua tag & rapikan whitespace supaya yang tampil teks bersih,
+// bukan kode HTML-nya.
+function bersihkanRingkasan(html) {
+  if (!html) return ''
+  const teks = html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+  return teks
+}
+
 export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAwal = 0, likedAwal = false, kategori, tipe, gambarSampul, tanggalTerbit }) {
   const [liked, setLiked] = useState(likedAwal)
   const [likes, setLikes] = useState(likesAwal)
@@ -93,7 +111,7 @@ export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAw
             oleh {penulis}
           </p>
           {ringkasan && (
-            <p className="font-baca text-sm sm:text-[15px] leading-8 text-naskah-inksoft mb-2">{ringkasan}</p>
+            <p className="font-baca text-sm sm:text-[15px] leading-8 text-naskah-inksoft mb-2">{bersihkanRingkasan(ringkasan)}</p>
           )}
 
           <div className="flex items-center justify-between mt-2">

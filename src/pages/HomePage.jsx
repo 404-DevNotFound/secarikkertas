@@ -124,16 +124,16 @@ export default function HomePage() {
           <div className="flex gap-1 mb-2 font-ketik text-xs uppercase tracking-wide overflow-x-auto">
             <button
               onClick={() => pilihTab('cerpen')}
-              className={`px-4 py-2 whitespace-nowrap transition-colors ${
-                tab === 'cerpen' ? 'garis-tangan text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft'
+              className={`px-4 py-2 whitespace-nowrap transition-colors font-semibold ${
+                tab === 'cerpen' ? 'text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft font-normal'
               }`}
             >
               Koleksi Cerpen
             </button>
             <button
               onClick={() => pilihTab('artikel')}
-              className={`px-4 py-2 whitespace-nowrap transition-colors ${
-                tab === 'artikel' ? 'garis-tangan text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft'
+              className={`px-4 py-2 whitespace-nowrap transition-colors font-semibold ${
+                tab === 'artikel' ? 'text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft font-normal'
               }`}
             >
               Artikel Edukasi
