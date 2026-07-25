@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js'
 import postRoutes from './routes/posts.js'
 import userRoutes from './routes/users.js'
 import adminRoutes from './routes/admin.js'
+import genreRoutes from './routes/genres.js'
 
 const app = express()
 
@@ -47,6 +48,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/posts', postRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/genres', genreRoutes)
 
 app.get('/', (req, res) => res.send('secarikkertas API jalan ✅'))
 

@@ -67,3 +67,14 @@ model Like {
 
   @@unique([postId, userId])
 }
+
+// Daftar genre siap-pakai untuk dropdown di editor naskah (WriteEditorPage).
+// Dulu field "genre" (kolom kategori di Post) diketik bebas — sekarang
+// pengguna cuma memilih dari tabel ini, jadi datanya konsisten. Tambah/
+// kurangi genre lewat tabel ini (Prisma Studio atau query manual), tanpa
+// perlu ubah kode.
+model Genre {
+  id        String   @id @default(cuid())
+  nama      String   @unique
+  createdAt DateTime @default(now())
+}
