@@ -71,7 +71,7 @@ function App() {
             <div className="w-full h-full bg-naskah-bg rounded-[6px_18px_8px_20px] shadow-[0_22px_50px_rgba(28,28,19,0.3),0_6px_14px_rgba(28,28,19,0.16)] flex flex-col overflow-hidden">
               <Navbar />
 
-              <main className="flex-1 min-h-0 overflow-y-auto">
+              <main className="flex-1 min-h-0 overflow-y-auto scroll-halus">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/post/:id" element={<ReadPostPage />} />

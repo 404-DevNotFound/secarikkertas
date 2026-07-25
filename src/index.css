@@ -159,3 +159,25 @@ body {
   background-color: #FBEBD6;
   color: #2B2A28;
 }
+
+/* Sembunyikan panah/tombol scrollbar bawaan browser (yang muncul sebagai
+   dua segitiga di ujung scrollbar) — scroll tetap bisa jalan normal
+   (drag/scroll wheel), cuma tombol panahnya yang disembunyikan. */
+.scroll-halus {
+  scrollbar-width: thin; /* Firefox: scrollbar tipis tanpa tombol panah */
+}
+.scroll-halus::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-halus::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+.scroll-halus::-webkit-scrollbar-thumb {
+  background-color: rgba(43, 42, 40, 0.25);
+  border-radius: 4px;
+}
+.scroll-halus::-webkit-scrollbar-track {
+  background: transparent;
+}

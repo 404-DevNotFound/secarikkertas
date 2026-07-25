@@ -11,6 +11,7 @@ export default function WriteEditorPage() {
   const navigate = useNavigate()
   const [judul, setJudul] = useState('')
   const [isi, setIsi] = useState('')
+  const [genre, setGenre] = useState('')
   const [gambarSampul, setGambarSampul] = useState(null)
   const [statusSimpan, setStatusSimpan] = useState('Tersimpan')
   const [toast, setToast] = useState(null)
@@ -24,6 +25,7 @@ export default function WriteEditorPage() {
     api.get(`/posts/${id}`).then((res) => {
       setJudul(res.data.judul)
       setIsi(res.data.isi || '')
+      setGenre(res.data.kategori || '')
       setGambarSampul(res.data.gambarSampul || null)
       sudahDimuat.current = true
     })
@@ -38,11 +40,13 @@ export default function WriteEditorPage() {
 
     return () => clearTimeout(timerRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [judul, isi])
+  }, [judul, isi, genre])
 
   async function simpanKeServer(tampilkanNotifikasi) {
     try {
-      await api.put(`/posts/${id}/draft`, { judul, isi })
+      // Genre kosong -> otomatis jadi "Umum", jangan biarkan tersimpan string kosong
+      const genreDikirim = genre.trim() || 'Umum'
+      await api.put(`/posts/${id}/draft`, { judul, isi, kategori: genreDikirim })
       setStatusSimpan('Tersimpan')
       if (tampilkanNotifikasi) setToast({ message: 'Tulisan berhasil disimpan.', type: 'sukses' })
       return true
@@ -146,7 +150,17 @@ export default function WriteEditorPage() {
               value={judul}
               onChange={(e) => setJudul(e.target.value)}
               placeholder="Judul tulisan..."
-              className="w-full px-3 py-2.5 mb-8 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-naskah text-xl text-naskah-ink transition-colors"
+              className="w-full px-3 py-2.5 mb-6 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-naskah text-xl text-naskah-ink transition-colors"
+            />
+
+            <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-2">
+              Genre
+            </p>
+            <input
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              placeholder="Contoh: Romansa, Horor, Slice of Life... (kosongkan untuk Umum)"
+              className="w-full px-3 py-2.5 mb-8 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-baca text-sm text-naskah-ink transition-colors"
             />
 
             <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-naskah-aged/60">

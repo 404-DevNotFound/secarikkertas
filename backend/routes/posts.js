@@ -51,6 +51,10 @@ router.get('/', async (req, res) => {
     kategori: p.kategori,
     tipe: p.tipe,
     gambarSampul: p.gambarSampul,
+    // Pakai updatedAt sebagai tanggal terbit — field ini otomatis ke-update
+    // Prisma tiap kali status berubah jadi "terbit", dan naskah yang sudah
+    // terbit tidak bisa diedit lagi, jadi nilainya stabil sebagai "kapan terbit"
+    tanggalTerbit: p.updatedAt,
   }))
 
   res.json({

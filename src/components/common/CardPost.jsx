@@ -24,7 +24,12 @@ function miringDariId(id) {
   return sudut
 }
 
-export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAwal = 0, likedAwal = false, kategori, tipe, gambarSampul }) {
+function formatTanggal(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAwal = 0, likedAwal = false, kategori, tipe, gambarSampul, tanggalTerbit }) {
   const [liked, setLiked] = useState(likedAwal)
   const [likes, setLikes] = useState(likesAwal)
   const warna = warnaDariId(id)
@@ -69,6 +74,12 @@ export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAw
               <>
                 <span className="text-naskah-inksoft/40">·</span>
                 <span className="font-mono text-[11px] uppercase tracking-widest text-naskah-inksoft/50">{kategori}</span>
+              </>
+            )}
+            {tanggalTerbit && (
+              <>
+                <span className="text-naskah-inksoft/40">·</span>
+                <span className="font-mono text-[11px] text-naskah-inksoft/50">{formatTanggal(tanggalTerbit)}</span>
               </>
             )}
           </div>

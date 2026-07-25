@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import api from '../api/axios'
 import CardPost from '../components/common/CardPost'
 import BookSpread from '../components/layout/BookSpread'
@@ -100,12 +101,17 @@ export default function HomePage() {
           {populer.length > 0 && (
             <div className="mt-auto pt-6 border-t border-naskah-aged/60">
               <h3 className="font-ketik text-[11px] uppercase tracking-[0.2em] text-naskah-inksoft/70 mb-3">
-                Cerpen Populer
+                Unggahan Terbaru
               </h3>
               <ul className="space-y-2">
                 {populer.map((p) => (
-                  <li key={p.id} className="font-naskah text-sm text-naskah-inksoft border-l-2 border-naskah-moss/50 pl-3">
-                    {p.judul}
+                  <li key={p.id}>
+                    <Link
+                      to={`/post/${p.id}`}
+                      className="block font-naskah text-sm text-naskah-inksoft border-l-2 border-naskah-moss/50 pl-3 hover:text-naskah-leather hover:border-naskah-leather transition-colors"
+                    >
+                      {p.judul}
+                    </Link>
                   </li>
                 ))}
               </ul>
