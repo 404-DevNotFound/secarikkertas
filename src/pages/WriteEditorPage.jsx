@@ -23,12 +23,18 @@ export default function WriteEditorPage() {
   const [menyimpanManual, setMenyimpanManual] = useState(false)
   const [menerbitkanUlang, setMenerbitkanUlang] = useState(false)
   const [mengunggahGambar, setMengunggahGambar] = useState(false)
+  const [daftarGenre, setDaftarGenre] = useState([])
   const timerRef = useRef(null)
   const sudahDimuat = useRef(false)
   const fileGambarRef = useRef(null)
 
   // Artikel edukasi tidak punya genre bebas — selalu "Umum".
   const genreTerkunci = tipe === 'artikel'
+
+  // Ambil daftar genre siap-pakai dari backend (tabel Genre) buat isi dropdown.
+  useEffect(() => {
+    api.get('/genres').then((res) => setDaftarGenre(res.data)).catch(() => setDaftarGenre([]))
+  }, [])
 
   useEffect(() => {
     api.get(`/posts/${id}`).then((res) => {
@@ -213,17 +219,21 @@ export default function WriteEditorPage() {
                 Umum
               </div>
             ) : (
-              <input
+              <select
                 value={genre}
                 onChange={(e) => setGenre(e.target.value)}
-                placeholder="Contoh: Romansa, Horor, Slice of Life... (kosongkan untuk Umum)"
                 className="w-full px-3 py-2.5 mb-2 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-baca text-sm text-naskah-ink transition-colors"
-              />
+              >
+                <option value="">Umum (default)</option>
+                {daftarGenre.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
             )}
             <p className="font-ketik text-[10px] text-naskah-inksoft/50 mb-8">
               {genreTerkunci
                 ? 'Artikel edukasi selalu memakai genre "Umum" dan tidak bisa diganti.'
-                : 'Cerpen bisa punya genre bebas sesuai isi ceritanya.'}
+                : 'Pilih genre yang paling sesuai dengan isi ceritanya.'}
             </p>
 
             <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-naskah-aged/60">

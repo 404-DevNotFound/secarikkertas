@@ -5,8 +5,6 @@ import CardPost from '../components/common/CardPost'
 import BookSpread from '../components/layout/BookSpread'
 import Pagination from '../components/common/Pagination'
 
-const DAFTAR_KATEGORI = ['Romansa', 'Horor', 'Slice of Life', 'Coming of Age']
-
 export default function HomePage() {
   const [posts, setPosts] = useState([])
   const [keyword, setKeyword] = useState('')
@@ -15,9 +13,17 @@ export default function HomePage() {
   const [halaman, setHalaman] = useState(1)
   const [totalHalaman, setTotalHalaman] = useState(1)
   const [memuat, setMemuat] = useState(true)
+  const [daftarKategori, setDaftarKategori] = useState([])
 
   useEffect(() => {
     document.title = 'secarikkertas'
+  }, [])
+
+  // Daftar kategori di sidebar diambil dari tabel Genre lewat backend,
+  // bukan hardcode lagi — supaya genre baru yang ditambah lewat Prisma
+  // Studio otomatis muncul di sini tanpa perlu ubah kode.
+  useEffect(() => {
+    api.get('/genres').then((res) => setDaftarKategori(res.data)).catch(() => setDaftarKategori([]))
   }, [])
 
   useEffect(() => {
@@ -87,7 +93,7 @@ export default function HomePage() {
                 Semua Tulisan
               </button>
             </li>
-            {DAFTAR_KATEGORI.map((k) => (
+            {daftarKategori.map((k) => (
               <li key={k}>
                 <button
                   onClick={() => pilihKategori(k)}
