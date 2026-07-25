@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import TextEditorContainer from '../components/feature/TextEditorContainer'
-import InputField from '../components/common/InputField'
 import Button from '../components/common/Button'
 import Toast from '../components/common/Toast'
+import BookSpread from '../components/layout/BookSpread'
 
 export default function WriteEditorPage() {
   const { id } = useParams()
@@ -94,62 +94,90 @@ export default function WriteEditorPage() {
       await api.delete(`/posts/${id}/cover`)
       setGambarSampul(null)
       setToast({ message: 'Gambar sampul dihapus.', type: 'sukses' })
-    } catch (err) {
+    } catch {
       setToast({ message: 'Gagal menghapus gambar', type: 'error' })
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <div className="flex justify-between items-center mb-2">
-        <span className="font-mono text-xs text-tinta-faint">{statusSimpan}</span>
-      </div>
+    <>
+      <BookSpread
+        kiri={
+          <div className="flex flex-col h-full">
+            <div className="flex justify-between items-center mb-6">
+              <span className="font-ketik text-[11px] uppercase tracking-[0.25em] text-naskah-leather">
+                Meja Kerja
+              </span>
+              <span className="font-ketik text-[11px] text-naskah-inksoft/60">{statusSimpan}</span>
+            </div>
 
-      {/* Gambar Sampul */}
-      <div className="mb-6">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint mb-2">Gambar Sampul</p>
-        {gambarSampul ? (
-          <div className="relative inline-block">
-            <img src={gambarSampul} alt="" className="w-full max-h-64 object-cover shadow-sm" />
-            <button
-              onClick={handleHapusGambar}
-              className="absolute top-2 right-2 bg-tinta/80 text-kertas font-mono text-[10px] uppercase px-2 py-1 hover:bg-red-600 transition-colors"
-            >
-              Hapus
-            </button>
+            {/* Gambar Sampul */}
+            <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-2">
+              Gambar Sampul
+            </p>
+            {gambarSampul ? (
+              <div className="relative inline-block mb-6">
+                <img src={gambarSampul} alt="" className="w-full max-h-64 object-cover shadow-sm" />
+                <button
+                  onClick={handleHapusGambar}
+                  className="absolute top-2 right-2 bg-naskah-ink/80 text-naskah-bg font-ketik text-[10px] uppercase px-2 py-1 hover:bg-red-600 transition-colors"
+                >
+                  Hapus
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => fileGambarRef.current?.click()}
+                  disabled={mengunggahGambar}
+                  className="w-full h-32 border-2 border-dashed border-naskah-aged text-naskah-inksoft/70 hover:border-naskah-leather hover:text-naskah-leather transition-colors font-ketik text-xs uppercase disabled:opacity-50 mb-6"
+                >
+                  {mengunggahGambar ? 'Mengunggah...' : '+ Tambah Gambar Sampul'}
+                </button>
+              </>
+            )}
+            <input ref={fileGambarRef} type="file" accept="image/*" onChange={handleUploadGambar} className="hidden" />
+
+            <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-2">
+              Judul
+            </p>
+            <input
+              value={judul}
+              onChange={(e) => setJudul(e.target.value)}
+              placeholder="Judul tulisan..."
+              className="w-full px-3 py-2.5 mb-8 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-naskah text-xl text-naskah-ink transition-colors"
+            />
+
+            <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-naskah-aged/60">
+              <Button
+                onClick={handleSimpanManual}
+                disabled={menyimpanManual}
+                className="!bg-naskah-leather !text-naskah-bg hover:!bg-naskah-leatherdark !font-ketik w-full"
+              >
+                {menyimpanManual ? 'Menyimpan...' : 'Simpan'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
+                className="!border-naskah-aged !text-naskah-inksoft hover:!bg-naskah-aged/40 !font-ketik w-full"
+              >
+                Kembali ke Dasbor
+              </Button>
+            </div>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileGambarRef.current?.click()}
-            disabled={mengunggahGambar}
-            className="w-full h-32 border-2 border-dashed border-kertas-line text-tinta-faint hover:border-stempel hover:text-stempel-dark transition-colors font-mono text-xs uppercase disabled:opacity-50"
-          >
-            {mengunggahGambar ? 'Mengunggah...' : '+ Tambah Gambar Sampul'}
-          </button>
-        )}
-        <input ref={fileGambarRef} type="file" accept="image/*" onChange={handleUploadGambar} className="hidden" />
-      </div>
-
-      <InputField
-        value={judul}
-        onChange={(e) => setJudul(e.target.value)}
-        placeholder="Judul tulisan..."
-        className="text-xl font-judul font-semibold"
+        }
+        kanan={
+          <div>
+            <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-3">
+              Naskah
+            </p>
+            <TextEditorContainer postId={id} value={isi} onChange={setIsi} />
+          </div>
+        }
       />
 
-      <TextEditorContainer postId={id} value={isi} onChange={setIsi} />
-
-      <div className="mt-6 flex flex-col sm:flex-row gap-3">
-        <Button onClick={handleSimpanManual} disabled={menyimpanManual} className="w-full sm:w-auto">
-          {menyimpanManual ? 'Menyimpan...' : 'Simpan'}
-        </Button>
-        <Button variant="outline" onClick={() => navigate('/dashboard')} className="w-full sm:w-auto">
-          Kembali ke Dasbor
-        </Button>
-      </div>
-
       <Toast message={toast?.message} type={toast?.type} onClose={() => setToast(null)} />
-    </div>
+    </>
   )
 }

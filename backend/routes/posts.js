@@ -89,8 +89,12 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
 
   const { judul, isi, kategori } = req.body
   const isiHtml = isi !== undefined ? sanitizeHtml(isi, {
-    allowedTags: ['p', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li', 'a'],
-    allowedAttributes: { a: ['href'] },
+    allowedTags: ['p', 'div', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li', 'a'],
+    allowedAttributes: { a: ['href'], p: ['style'], div: ['style'] },
+    allowedStyles: {
+      p: { 'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/] },
+      div: { 'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/] },
+    },
   }) : undefined
 
   const updated = await prisma.post.update({
@@ -243,8 +247,12 @@ router.post('/:id/import', requireAuth, upload.single('file'), async (req, res) 
     .join('')
 
   const isiHtml = sanitizeHtml(paragraf, {
-    allowedTags: ['p', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li', 'a'],
-    allowedAttributes: { a: ['href'] },
+    allowedTags: ['p', 'div', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li', 'a'],
+    allowedAttributes: { a: ['href'], p: ['style'], div: ['style'] },
+    allowedStyles: {
+      p: { 'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/] },
+      div: { 'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/] },
+    },
   })
 
   const updated = await prisma.post.update({

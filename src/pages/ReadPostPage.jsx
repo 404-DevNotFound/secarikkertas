@@ -56,7 +56,7 @@ export default function ReadPostPage() {
           dan penekanan (i/em/strong) didukung kalau penulis pakai HTML manual */}
       <div
         className="font-baca text-[17px] sm:text-[18px] leading-[1.9] text-tinta
-          [&>p]:mb-5
+          [&>p]:mb-5 [&>div]:mb-5
           [&>blockquote]:font-judul [&>blockquote]:text-xl [&>blockquote]:italic
           [&>blockquote]:text-stempel-dark [&>blockquote]:border-l-4 [&>blockquote]:border-stabilo
           [&>blockquote]:pl-5 [&>blockquote]:my-8

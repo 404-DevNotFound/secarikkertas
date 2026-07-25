@@ -121,6 +121,14 @@ body {
   }
 }
 
+/* Placeholder untuk editor contentEditable (TextEditorContainer) */
+.editor-naskah:empty:before {
+  content: attr(data-placeholder);
+  color: rgba(28, 28, 19, 0.4);
+  font-style: italic;
+  pointer-events: none;
+}
+
 ::selection {
   background-color: #FBEBD6;
   color: #2B2A28;
