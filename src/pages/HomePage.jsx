@@ -14,17 +14,20 @@ export default function HomePage() {
   const [kategoriAktif, setKategoriAktif] = useState(null)
   const [halaman, setHalaman] = useState(1)
   const [totalHalaman, setTotalHalaman] = useState(1)
+  const [memuat, setMemuat] = useState(true)
 
   useEffect(() => {
     document.title = 'secarikkertas'
   }, [])
 
   useEffect(() => {
+    setMemuat(true)
     api.get('/posts', { params: { tipe: tab, q: keyword, kategori: kategoriAktif, page: halaman, limit: 6 } })
       .then((res) => {
         setPosts(res.data.data)
         setTotalHalaman(res.data.totalPages)
       })
+      .finally(() => setMemuat(false))
   }, [tab, keyword, kategoriAktif, halaman])
 
   // Ganti tab/pencarian/kategori → balik ke halaman 1 (dipanggil langsung
@@ -141,11 +144,17 @@ export default function HomePage() {
           </div>
 
           <div className="garis-buku">
-            {posts.map((p) => (
-              <CardPost key={p.id} {...p} />
-            ))}
-            {posts.length === 0 && (
-              <p className="font-ketik italic text-sm text-naskah-inksoft/70 py-6 text-center">Belum ada tulisan.</p>
+            {memuat ? (
+              <p className="font-ketik italic text-sm text-naskah-inksoft/70 py-6 text-center">Memuat...</p>
+            ) : (
+              <>
+                {posts.map((p) => (
+                  <CardPost key={p.id} {...p} />
+                ))}
+                {posts.length === 0 && (
+                  <p className="font-ketik italic text-sm text-naskah-inksoft/70 py-6 text-center">Belum ada tulisan.</p>
+                )}
+              </>
             )}
           </div>
 
