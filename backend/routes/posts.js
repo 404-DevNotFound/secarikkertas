@@ -98,10 +98,18 @@ router.post('/', requireAuth, async (req, res) => {
 
 router.put('/:id/draft', requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
-  if (!post || post.penulisId !== req.userId) {
+  if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
+
+  const user = await prisma.user.findUnique({ where: { id: req.userId } })
+  const isAdmin = user?.role === 'admin'
+
+  if (post.penulisId !== req.userId && !isAdmin) {
     return res.status(403).json({ message: 'Tidak diizinkan' })
   }
-  if (!['draft', 'ditolak'].includes(post.status)) {
+  // Admin boleh mengedit naskah kapan pun, termasuk yang sudah terbit
+  // (dipakai fitur "Edit & Terbitkan Ulang"). Penulis biasa cuma boleh
+  // edit selagi draft/ditolak.
+  if (!isAdmin && !['draft', 'ditolak'].includes(post.status)) {
     return res.status(400).json({ message: 'Naskah sedang ditinjau/terbit, tidak bisa diedit' })
   }
 
@@ -129,7 +137,12 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
 // POST /api/posts/:id/cover - upload/ganti gambar sampul
 router.post('/:id/cover', requireAuth, uploadGambar.single('file'), async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
-  if (!post || post.penulisId !== req.userId) {
+  if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
+
+  const user = await prisma.user.findUnique({ where: { id: req.userId } })
+  const isAdmin = user?.role === 'admin'
+
+  if (post.penulisId !== req.userId && !isAdmin) {
     return res.status(403).json({ message: 'Tidak diizinkan' })
   }
   if (!req.file) {
@@ -165,7 +178,12 @@ router.post('/:id/cover', requireAuth, uploadGambar.single('file'), async (req, 
 // DELETE /api/posts/:id/cover - hapus gambar sampul (tanpa hapus naskahnya)
 router.delete('/:id/cover', requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
-  if (!post || post.penulisId !== req.userId) {
+  if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
+
+  const user = await prisma.user.findUnique({ where: { id: req.userId } })
+  const isAdmin = user?.role === 'admin'
+
+  if (post.penulisId !== req.userId && !isAdmin) {
     return res.status(403).json({ message: 'Tidak diizinkan' })
   }
   if (post.gambarSampul) {
@@ -206,15 +224,21 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
 router.put('/:id/ajukan', requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
-  if (!post || post.penulisId !== req.userId) {
+  if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
+
+  const user = await prisma.user.findUnique({ where: { id: req.userId } })
+  const isAdmin = user?.role === 'admin'
+
+  if (post.penulisId !== req.userId && !isAdmin) {
     return res.status(403).json({ message: 'Tidak diizinkan' })
   }
   if (!post.judul || post.judul === 'Tanpa judul' || post.isi.length < 50) {
     return res.status(400).json({ message: 'Lengkapi judul dan isi (minimal 50 karakter) sebelum mengajukan' })
   }
 
-  const user = await prisma.user.findUnique({ where: { id: req.userId } })
-  const statusBaru = user?.role === 'admin' ? 'terbit' : 'diajukan'
+  // Admin: langsung terbit (dipakai juga untuk "Terbitkan Ulang" naskah
+  // yang sudah terbit sebelumnya). Penulis biasa: masuk antrean tinjauan.
+  const statusBaru = isAdmin ? 'terbit' : 'diajukan'
 
   const updated = await prisma.post.update({
     where: { id: req.params.id },

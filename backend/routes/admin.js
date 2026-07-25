@@ -10,7 +10,10 @@ router.get('/stats', async (req, res) => {
     prisma.user.count(),
     prisma.post.count(),
     prisma.post.count({ where: { status: 'terbit' } }),
-    prisma.post.count({ where: { status: 'diajukan' } }),
+    // Dihitung dari seluruh tahap pipeline (antrean + sedang diperiksa +
+    // siap terbit), bukan cuma tahap "diajukan" paling awal, supaya
+    // angkanya mencerminkan semua naskah yang masih diproses.
+    prisma.post.count({ where: { status: { in: ['diajukan', 'ditinjau', 'siap_terbit'] } } }),
     prisma.comment.count(),
   ])
   res.json({ totalUser, totalPost, totalTerbit, totalDiajukan, totalComment })
@@ -63,12 +66,52 @@ router.delete('/users/:id', async (req, res) => {
 
 router.get('/naskah', async (req, res) => {
   const { status } = req.query
+  // "proses" itu bukan status asli di database — dia gabungan 3 tahap
+  // pipeline (antrean, sedang diperiksa, siap terbit) supaya tab
+  // "Antrean Naskah" di admin bisa nampilin semuanya sekaligus.
+  let where
+  if (status === 'proses') {
+    where = { status: { in: ['diajukan', 'ditinjau', 'siap_terbit'] } }
+  } else if (status) {
+    where = { status }
+  } else {
+    where = { status: { in: ['diajukan', 'ditinjau', 'siap_terbit', 'terbit', 'ditolak'] } }
+  }
+
   const posts = await prisma.post.findMany({
-    where: status ? { status } : { status: { in: ['diajukan', 'terbit', 'ditolak'] } },
+    where,
     include: { penulis: { select: { namaPena: true, username: true } } },
     orderBy: { updatedAt: 'desc' },
   })
   res.json(posts)
+})
+
+// Antrean -> Sedang Diperiksa
+router.put('/naskah/:id/mulai-periksa', async (req, res) => {
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!post) return res.status(404).json({ message: 'Naskah tidak ditemukan' })
+  if (post.status !== 'diajukan') {
+    return res.status(400).json({ message: 'Naskah tidak sedang dalam antrean' })
+  }
+  const updated = await prisma.post.update({
+    where: { id: req.params.id },
+    data: { status: 'ditinjau' },
+  })
+  res.json(updated)
+})
+
+// Sedang Diperiksa -> Siap Terbit
+router.put('/naskah/:id/siap-terbit', async (req, res) => {
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!post) return res.status(404).json({ message: 'Naskah tidak ditemukan' })
+  if (post.status !== 'ditinjau') {
+    return res.status(400).json({ message: 'Naskah belum berstatus sedang diperiksa' })
+  }
+  const updated = await prisma.post.update({
+    where: { id: req.params.id },
+    data: { status: 'siap_terbit' },
+  })
+  res.json(updated)
 })
 
 router.put('/naskah/:id/setujui', async (req, res) => {

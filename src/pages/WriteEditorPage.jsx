@@ -5,27 +5,38 @@ import TextEditorContainer from '../components/feature/TextEditorContainer'
 import Button from '../components/common/Button'
 import Toast from '../components/common/Toast'
 import BookSpread from '../components/layout/BookSpread'
+import { useAuth } from '../context/AuthContext'
 
 export default function WriteEditorPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [judul, setJudul] = useState('')
   const [isi, setIsi] = useState('')
   const [genre, setGenre] = useState('')
+  const [tipe, setTipe] = useState('cerpen')
+  const [status, setStatus] = useState('draft')
   const [gambarSampul, setGambarSampul] = useState(null)
   const [statusSimpan, setStatusSimpan] = useState('Tersimpan')
   const [toast, setToast] = useState(null)
   const [menyimpanManual, setMenyimpanManual] = useState(false)
+  const [menerbitkanUlang, setMenerbitkanUlang] = useState(false)
   const [mengunggahGambar, setMengunggahGambar] = useState(false)
   const timerRef = useRef(null)
   const sudahDimuat = useRef(false)
   const fileGambarRef = useRef(null)
 
+  // Artikel edukasi tidak punya genre bebas — selalu "Umum".
+  const genreTerkunci = tipe === 'artikel'
+
   useEffect(() => {
     api.get(`/posts/${id}`).then((res) => {
       setJudul(res.data.judul)
       setIsi(res.data.isi || '')
-      setGenre(res.data.kategori || '')
+      setTipe(res.data.tipe || 'cerpen')
+      setGenre(res.data.tipe === 'artikel' ? 'Umum' : (res.data.kategori || ''))
+      setStatus(res.data.status || 'draft')
       setGambarSampul(res.data.gambarSampul || null)
       sudahDimuat.current = true
     })
@@ -44,8 +55,9 @@ export default function WriteEditorPage() {
 
   async function simpanKeServer(tampilkanNotifikasi) {
     try {
-      // Genre kosong -> otomatis jadi "Umum", jangan biarkan tersimpan string kosong
-      const genreDikirim = genre.trim() || 'Umum'
+      // Artikel selalu "Umum". Genre kosong (cerpen) -> otomatis "Umum" juga,
+      // jangan biarkan tersimpan string kosong.
+      const genreDikirim = genreTerkunci ? 'Umum' : (genre.trim() || 'Umum')
       await api.put(`/posts/${id}/draft`, { judul, isi, kategori: genreDikirim })
       setStatusSimpan('Tersimpan')
       if (tampilkanNotifikasi) setToast({ message: 'Tulisan berhasil disimpan.', type: 'sukses' })
@@ -63,6 +75,29 @@ export default function WriteEditorPage() {
     const berhasil = await simpanKeServer(true)
     setMenyimpanManual(false)
     if (berhasil) setTimeout(() => navigate('/dashboard'), 900)
+  }
+
+  // Khusus admin, mengedit naskah yang sudah terbit: simpan dulu perubahan,
+  // baru picu ulang endpoint publish supaya naskah live ter-update dan
+  // statusnya tetap "terbit".
+  async function handleTerbitkanUlang() {
+    setMenerbitkanUlang(true)
+    clearTimeout(timerRef.current)
+    const tersimpan = await simpanKeServer(false)
+    if (!tersimpan) {
+      setMenerbitkanUlang(false)
+      setToast({ message: 'Gagal menyimpan perubahan, naskah belum diterbitkan ulang.', type: 'error' })
+      return
+    }
+    try {
+      await api.put(`/posts/${id}/ajukan`)
+      setToast({ message: 'Naskah berhasil diterbitkan ulang.', type: 'sukses' })
+      setTimeout(() => navigate('/admin'), 900)
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Gagal menerbitkan ulang naskah', type: 'error' })
+    } finally {
+      setMenerbitkanUlang(false)
+    }
   }
 
   async function handleUploadGambar(e) {
@@ -115,6 +150,23 @@ export default function WriteEditorPage() {
               <span className="font-ketik text-[11px] text-naskah-inksoft/60">{statusSimpan}</span>
             </div>
 
+            {/* Jenis Tulisan — ditentukan saat naskah dibuat, ditampilkan
+                sebagai info saja (bukan bisa diganti di sini). */}
+            <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-2">
+              Jenis Tulisan
+            </p>
+            <div className="flex items-center gap-1.5 mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-stempel" />
+              <span className="font-mono text-xs uppercase tracking-widest text-naskah-inksoft">
+                {tipe === 'artikel' ? 'Artikel Edukasi' : 'Cerpen'}
+              </span>
+              {isAdmin && status === 'terbit' && (
+                <span className="font-ketik text-[10px] uppercase px-2 py-0.5 bg-naskah-mosslight text-naskah-moss ml-1">
+                  Terbit
+                </span>
+              )}
+            </div>
+
             {/* Gambar Sampul */}
             <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-2">
               Gambar Sampul
@@ -156,14 +208,34 @@ export default function WriteEditorPage() {
             <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-2">
               Genre
             </p>
-            <input
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              placeholder="Contoh: Romansa, Horor, Slice of Life... (kosongkan untuk Umum)"
-              className="w-full px-3 py-2.5 mb-8 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-baca text-sm text-naskah-ink transition-colors"
-            />
+            {genreTerkunci ? (
+              <div className="w-full px-3 py-2.5 mb-2 bg-naskah-aged/30 border border-naskah-aged font-baca text-sm text-naskah-inksoft/70">
+                Umum
+              </div>
+            ) : (
+              <input
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                placeholder="Contoh: Romansa, Horor, Slice of Life... (kosongkan untuk Umum)"
+                className="w-full px-3 py-2.5 mb-2 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-baca text-sm text-naskah-ink transition-colors"
+              />
+            )}
+            <p className="font-ketik text-[10px] text-naskah-inksoft/50 mb-8">
+              {genreTerkunci
+                ? 'Artikel edukasi selalu memakai genre "Umum" dan tidak bisa diganti.'
+                : 'Cerpen bisa punya genre bebas sesuai isi ceritanya.'}
+            </p>
 
             <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-naskah-aged/60">
+              {isAdmin && status === 'terbit' && (
+                <Button
+                  onClick={handleTerbitkanUlang}
+                  disabled={menerbitkanUlang}
+                  className="!bg-naskah-moss !text-white hover:!bg-naskah-moss/90 !font-ketik w-full disabled:opacity-60"
+                >
+                  {menerbitkanUlang ? 'Menerbitkan Ulang...' : 'Simpan & Terbitkan Ulang'}
+                </Button>
+              )}
               <Button
                 onClick={handleSimpanManual}
                 disabled={menyimpanManual}
@@ -173,10 +245,10 @@ export default function WriteEditorPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(isAdmin && status === 'terbit' ? '/admin' : '/dashboard')}
                 className="!border-naskah-aged !text-naskah-inksoft hover:!bg-naskah-aged/40 !font-ketik w-full"
               >
-                Kembali ke Dasbor
+                {isAdmin && status === 'terbit' ? 'Kembali ke Panel Admin' : 'Kembali ke Dasbor'}
               </Button>
             </div>
           </div>
