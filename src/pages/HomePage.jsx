@@ -90,31 +90,31 @@ export default function HomePage() {
       }
       kanan={
         <div>
-          <div className="flex gap-1 mb-6 font-ketik text-xs uppercase tracking-wide overflow-x-auto">
+          <div className="flex gap-1 mb-2 font-ketik text-xs uppercase tracking-wide overflow-x-auto">
             <button
               onClick={() => setTab('cerpen')}
-              className={`px-4 py-2 border-b-2 whitespace-nowrap transition-colors ${
-                tab === 'cerpen' ? 'border-naskah-leather text-naskah-ink' : 'border-transparent text-naskah-inksoft/60 hover:text-naskah-inksoft'
+              className={`px-4 py-2 whitespace-nowrap transition-colors ${
+                tab === 'cerpen' ? 'garis-tangan text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft'
               }`}
             >
               Koleksi Cerpen
             </button>
             <button
               onClick={() => setTab('artikel')}
-              className={`px-4 py-2 border-b-2 whitespace-nowrap transition-colors ${
-                tab === 'artikel' ? 'border-naskah-leather text-naskah-ink' : 'border-transparent text-naskah-inksoft/60 hover:text-naskah-inksoft'
+              className={`px-4 py-2 whitespace-nowrap transition-colors ${
+                tab === 'artikel' ? 'garis-tangan text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft'
               }`}
             >
               Artikel Edukasi
             </button>
           </div>
 
-          <div className="grid gap-5">
+          <div className="garis-buku">
             {posts.map((p) => (
               <CardPost key={p.id} {...p} />
             ))}
             {posts.length === 0 && (
-              <p className="font-ketik italic text-sm text-naskah-inksoft/70">Belum ada tulisan.</p>
+              <p className="font-ketik italic text-sm text-naskah-inksoft/70 py-6">Belum ada tulisan.</p>
             )}
           </div>
         </div>
