@@ -73,6 +73,14 @@ export default function CoverPage({ onOpen }) {
           Buka Buku
         </button>
       </div>
+
+      {/* Kredit kecil untuk sumber ilustrasi sampul */}
+      <span
+        className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-10 font-mono text-[9px] sm:text-[10px] tracking-[0.15em] uppercase"
+        style={{ color: 'rgba(232,206,133,0.6)' }}
+      >
+        Ilustrasi sampul: koleksi The New York Public Library
+      </span>
     </div>
   )
 }
