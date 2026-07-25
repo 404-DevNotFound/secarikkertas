@@ -49,11 +49,16 @@ export default {
         },
       },
       fontFamily: {
-        judul: ['Fraunces', 'Georgia', 'serif'],
-        baca: ['Literata', 'Georgia', 'serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
+        // Font utama situs, disamakan dengan referensi desain "Stitch":
+        // judul pakai Libre Caslon Text, teks baca pakai Courier Prime
+        // (nuansa mesin ketik), label/navigasi pakai Work Sans.
+        judul: ['"Libre Caslon Text"', 'Georgia', 'serif'],
+        baca: ['"Courier Prime"', 'monospace'],
+        mono: ['"Work Sans"', 'sans-serif'],
 
-        // Font khusus halaman ber-layout buku terbuka
+        // Alias — dipakai di halaman ber-layout buku terbuka (Home, Dasbor,
+        // Editor, Admin). Sengaja disamakan dengan judul/baca di atas supaya
+        // seluruh situs konsisten satu sistem font.
         naskah: ['"Libre Caslon Text"', 'Georgia', 'serif'],
         ketik: ['"Courier Prime"', 'monospace'],
       },

@@ -1,54 +1,71 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+
+// Ambil 1-2 huruf inisial dari nama pena / username, untuk avatar bulat
+function inisialDari(teks) {
+  if (!teks) return '?'
+  const kata = teks.trim().split(/\s+/)
+  if (kata.length === 1) return kata[0].slice(0, 2).toUpperCase()
+  return (kata[0][0] + kata[1][0]).toUpperCase()
+}
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const [menuBuka, setMenuBuka] = useState(false)
+  const { pathname } = useLocation()
+
+  const tautan = (to) =>
+    `font-mono text-[13px] uppercase tracking-[0.12em] px-1 py-0.5 border-b-2 transition-colors ${
+      pathname === to
+        ? 'border-naskah-leather text-naskah-ink'
+        : 'border-transparent text-naskah-inksoft/70 hover:text-naskah-ink'
+    }`
 
   return (
-    <nav className="bg-tinta sticky top-0 z-20 shadow-md">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 group" onClick={() => setMenuBuka(false)}>
-          <svg width="26" height="26" viewBox="0 0 26 26" className="shrink-0">
-            <path d="M4 3 L20 3 L22 6 L22 23 L4 23 Z" fill="#FAF6EC" stroke="#FAF6EC" strokeWidth="1.3" />
-            <path d="M20 3 L20 6 L22 6 Z" fill="#DDD5C0" stroke="#FAF6EC" strokeWidth="1" />
-            <line x1="7" y1="10" x2="17" y2="10" stroke="#3F6C51" strokeWidth="1.2" />
-            <line x1="7" y1="14" x2="17" y2="14" stroke="#2B5B8C" strokeWidth="1.2" />
-            <line x1="7" y1="18" x2="13" y2="18" stroke="#C4436B" strokeWidth="1.2" />
-          </svg>
-          <span className="font-judul text-xl font-semibold tracking-tight text-kertas">
+    <nav className="bg-naskah-bg sticky top-0 z-20 border-b border-naskah-aged">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+        <Link to="/" className="shrink-0" onClick={() => setMenuBuka(false)}>
+          <span className="font-judul italic text-xl sm:text-2xl text-naskah-leather">
             secarikkertas
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-6 font-mono text-[13px] uppercase tracking-wide">
-          <Link to="/" className="stabilo-hover text-kertas/80 hover:text-stabilo transition-colors px-1 py-0.5">
-            Beranda
-          </Link>
+        <div className="hidden md:flex items-center gap-5">
+          <Link to="/" className={tautan('/')}>Beranda</Link>
           {user?.role === 'admin' && (
-            <Link to="/admin" className="stabilo-hover text-stabilo hover:opacity-70 transition-colors px-1 py-0.5">
-              Admin
-            </Link>
+            <Link to="/admin" className={tautan('/admin')}>Admin</Link>
           )}
+          {user && (
+            <>
+              <Link to="/dashboard" className={tautan('/dashboard')}>Dasbor</Link>
+              <Link to="/profile" className={tautan('/profile')}>Profil</Link>
+            </>
+          )}
+
           {user ? (
             <>
-              <Link to="/dashboard" className="stabilo-hover text-kertas/80 hover:text-stabilo transition-colors px-1 py-0.5">
-                Dasbor
-              </Link>
-              <Link to="/profile" className="stabilo-hover text-kertas/80 hover:text-stabilo transition-colors px-1 py-0.5">
-                Profil
-              </Link>
-              <button onClick={logout} className="stabilo-hover text-kertas/80 hover:text-stabilo transition-colors px-1 py-0.5">
+              <button
+                onClick={logout}
+                className="font-mono text-[13px] uppercase tracking-[0.12em] text-naskah-inksoft/70 hover:text-naskah-ink transition-colors"
+              >
                 Keluar
               </button>
+              <Link
+                to="/profile"
+                className="w-8 h-8 rounded-full bg-naskah-leather text-naskah-bg flex items-center justify-center font-ketik text-xs shrink-0"
+                title={user.namaPena || user.username}
+              >
+                {inisialDari(user.namaPena || user.username)}
+              </Link>
             </>
           ) : (
             <>
-              <Link to="/login" className="stabilo-hover text-kertas/80 hover:text-stabilo transition-colors px-1 py-0.5">
-                Masuk
-              </Link>
-              <Link to="/register" className="px-4 py-2 bg-mustard text-tinta hover:opacity-90 transition-opacity normal-case font-baca text-sm not-italic font-medium">
+              <Link to="/login" className={tautan('/login')}>Masuk</Link>
+              <Link
+                to="/register"
+                className="px-4 py-2 bg-naskah-leather text-naskah-bg hover:bg-naskah-leatherdark transition-colors font-mono text-xs uppercase tracking-wide"
+              >
                 Mulai Menulis
               </Link>
             </>
@@ -57,37 +74,29 @@ export default function Navbar() {
 
         <button className="md:hidden p-2 -mr-2" onClick={() => setMenuBuka((v) => !v)} aria-label="Buka menu">
           <svg width="22" height="22" viewBox="0 0 22 22">
-            <line x1="2" y1="6" x2="20" y2="6" stroke="#FAF6EC" strokeWidth="1.8" />
-            <line x1="2" y1="11" x2="20" y2="11" stroke="#FAF6EC" strokeWidth="1.8" />
-            <line x1="2" y1="16" x2="20" y2="16" stroke="#FAF6EC" strokeWidth="1.8" />
+            <line x1="2" y1="6" x2="20" y2="6" stroke="#1C1C13" strokeWidth="1.8" />
+            <line x1="2" y1="11" x2="20" y2="11" stroke="#1C1C13" strokeWidth="1.8" />
+            <line x1="2" y1="16" x2="20" y2="16" stroke="#1C1C13" strokeWidth="1.8" />
           </svg>
         </button>
       </div>
 
-      {/* Garis aksen warna-warni khas buku tulis, tipis di paling bawah navbar */}
-      <div className="h-[3px] flex">
-        <div className="flex-1 bg-stempel" />
-        <div className="flex-1 bg-biru" />
-        <div className="flex-1 bg-merahmuda" />
-        <div className="flex-1 bg-mustard" />
-      </div>
-
       {menuBuka && (
-        <div className="md:hidden border-t border-tinta-soft/30 bg-tinta px-4 py-4 flex flex-col gap-4 font-mono text-sm uppercase tracking-wide">
-          <Link to="/" onClick={() => setMenuBuka(false)} className="text-kertas/80">Beranda</Link>
+        <div className="md:hidden border-t border-naskah-aged bg-naskah-bg px-4 py-4 flex flex-col gap-4 font-mono text-sm uppercase tracking-wide">
+          <Link to="/" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Beranda</Link>
           {user?.role === 'admin' && (
-            <Link to="/admin" onClick={() => setMenuBuka(false)} className="text-stabilo">Admin</Link>
+            <Link to="/admin" onClick={() => setMenuBuka(false)} className="text-naskah-leather">Admin</Link>
           )}
           {user ? (
             <>
-              <Link to="/dashboard" onClick={() => setMenuBuka(false)} className="text-kertas/80">Dasbor</Link>
-              <Link to="/profile" onClick={() => setMenuBuka(false)} className="text-kertas/80">Profil</Link>
-              <button onClick={() => { logout(); setMenuBuka(false) }} className="text-left text-kertas/80">Keluar</button>
+              <Link to="/dashboard" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Dasbor</Link>
+              <Link to="/profile" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Profil</Link>
+              <button onClick={() => { logout(); setMenuBuka(false) }} className="text-left text-naskah-inksoft">Keluar</button>
             </>
           ) : (
             <>
-              <Link to="/login" onClick={() => setMenuBuka(false)} className="text-kertas/80">Masuk</Link>
-              <Link to="/register" onClick={() => setMenuBuka(false)} className="text-stabilo">Mulai Menulis</Link>
+              <Link to="/login" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Masuk</Link>
+              <Link to="/register" onClick={() => setMenuBuka(false)} className="text-naskah-leather">Mulai Menulis</Link>
             </>
           )}
         </div>
