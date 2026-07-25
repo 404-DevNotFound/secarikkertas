@@ -114,17 +114,17 @@ export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAw
             <p className="font-baca text-sm sm:text-[15px] leading-8 text-naskah-inksoft mb-2">{bersihkanRingkasan(ringkasan)}</p>
           )}
 
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center justify-between gap-3 mt-2">
             <Link
               to={`/post/${id}`}
-              className="font-baca text-sm text-naskah-leather hover:underline inline-flex items-center gap-1"
+              className="font-baca text-sm text-naskah-leather hover:underline inline-flex items-center gap-1 shrink-0"
             >
               Selengkapnya <span aria-hidden>→</span>
             </Link>
 
             <button
               onClick={handleLike}
-              className={`font-mono text-xs px-3 py-1.5 border transition-colors ${
+              className={`font-mono text-xs px-4 py-1.5 border transition-colors whitespace-nowrap shrink-0 ${
                 liked ? 'bg-naskah-mosslight border-naskah-moss text-naskah-moss' : 'border-naskah-aged text-naskah-inksoft/60 hover:border-naskah-moss hover:text-naskah-moss'
               }`}
             >
