@@ -19,7 +19,7 @@ const uploadGambar = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // gambar maks 5MB
 })
 
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   const { tipe, q, kategori } = req.query
   const halaman = Math.max(1, parseInt(req.query.page, 10) || 1)
   const batas = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 6))
@@ -48,6 +48,10 @@ router.get('/', async (req, res) => {
     penulis: p.penulis.namaPena,
     ringkasan: p.isi.slice(0, 120),
     likes: p.likes.length,
+    // Status suka akun yang sedang login, ditentukan dari data server —
+    // bukan cuma disimpan lokal di browser/perangkat. Ini yang bikin
+    // status "sudah suka" konsisten walau ganti perangkat/browser.
+    sudahSuka: req.userId ? p.likes.some((l) => l.userId === req.userId) : false,
     kategori: p.kategori,
     tipe: p.tipe,
     gambarSampul: p.gambarSampul,
@@ -73,14 +77,19 @@ router.get('/saya', requireAuth, async (req, res) => {
   res.json(posts)
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   const post = await prisma.post.findUnique({
     where: { id: req.params.id },
-    include: { penulis: true },
+    include: { penulis: true, likes: true },
   })
   if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
 
-  res.json({ ...post, penulis: post.penulis.namaPena })
+  res.json({
+    ...post,
+    penulis: post.penulis.namaPena,
+    likes: post.likes.length,
+    sudahSuka: req.userId ? post.likes.some((l) => l.userId === req.userId) : false,
+  })
 })
 
 router.post('/', requireAuth, async (req, res) => {

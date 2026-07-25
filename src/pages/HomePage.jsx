@@ -155,7 +155,7 @@ export default function HomePage() {
             ) : (
               <>
                 {posts.map((p) => (
-                  <CardPost key={p.id} {...p} />
+                  <CardPost key={p.id} {...p} likedAwal={p.sudahSuka} />
                 ))}
                 {posts.length === 0 && (
                   <p className="font-ketik italic text-sm text-naskah-inksoft/70 py-6 text-center">Belum ada tulisan.</p>
