@@ -44,25 +44,29 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col bg-kertas overflow-x-hidden">
-          <Navbar />
+        {/* "Meja" — latar penuh layar di belakang buku */}
+        <div className="min-h-screen bg-naskah-surface flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-x-hidden">
+          {/* Buku besar — mengisi hampir seluruh layar, bukan cuma kartu kecil di tengah */}
+          <div className="w-full max-w-[1600px] h-[95vh] sm:h-[93vh] bg-naskah-bg rounded-lg shadow-[0_30px_70px_rgba(28,28,19,0.32)] flex flex-col overflow-hidden">
+            <Navbar />
 
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/post/:id" element={<ReadPostPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+            <main className="flex-1 min-h-0 overflow-y-auto">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/post/:id" element={<ReadPostPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
 
-              <Route path="/dashboard" element={<ProtectedRoute><WriterDashboard /></ProtectedRoute>} />
-              <Route path="/dashboard/tulis/:id" element={<ProtectedRoute><WriteEditorPage /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><WriterDashboard /></ProtectedRoute>} />
+                <Route path="/dashboard/tulis/:id" element={<ProtectedRoute><WriteEditorPage /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
 
-              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            </Routes>
-          </main>
+                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              </Routes>
+            </main>
 
-          <Footer />
+            <Footer />
+          </div>
         </div>
       </BrowserRouter>
     </AuthProvider>

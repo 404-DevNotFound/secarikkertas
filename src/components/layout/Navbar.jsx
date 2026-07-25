@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
-// Ambil 1-2 huruf inisial dari nama pena / username, untuk avatar bulat
+const NAMA_BULAN = [
+  'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
+  'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES',
+]
+
 function inisialDari(teks) {
   if (!teks) return '?'
   const kata = teks.trim().split(/\s+/)
@@ -15,23 +19,36 @@ export default function Navbar() {
   const [menuBuka, setMenuBuka] = useState(false)
   const { pathname } = useLocation()
 
+  const hariIni = new Date()
+
   const tautan = (to) =>
-    `font-mono text-[13px] uppercase tracking-[0.12em] px-1 py-0.5 border-b-2 transition-colors ${
+    `font-mono text-[12px] uppercase tracking-[0.12em] px-1 py-0.5 border-b-2 transition-colors ${
       pathname === to
         ? 'border-naskah-leather text-naskah-ink'
         : 'border-transparent text-naskah-inksoft/70 hover:text-naskah-ink'
     }`
 
   return (
-    <nav className="bg-naskah-bg sticky top-0 z-20 border-b border-naskah-aged">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
-        <Link to="/" className="shrink-0" onClick={() => setMenuBuka(false)}>
-          <span className="font-judul italic text-xl sm:text-2xl text-naskah-leather">
-            secarikkertas
-          </span>
-        </Link>
+    <header className="border-b border-naskah-aged">
+      <div className="px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-4">
+        {/* Kiri: kotak "tanggal & bulan" ala buku catatan/jurnal, + logo */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="flex flex-col items-center leading-none border border-naskah-aged px-2.5 py-1.5 shrink-0">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-naskah-leather">
+              {NAMA_BULAN[hariIni.getMonth()]}
+            </span>
+            <span className="font-judul text-lg text-naskah-ink">
+              {String(hariIni.getDate()).padStart(2, '0')}
+            </span>
+          </div>
+          <Link to="/" className="min-w-0" onClick={() => setMenuBuka(false)}>
+            <span className="font-judul italic text-lg sm:text-2xl text-naskah-leather truncate block">
+              secarikkertas
+            </span>
+          </Link>
+        </div>
 
-        <div className="hidden md:flex items-center gap-5">
+        <div className="hidden md:flex items-center gap-5 shrink-0">
           <Link to="/" className={tautan('/')}>Beranda</Link>
           {user?.role === 'admin' && (
             <Link to="/admin" className={tautan('/admin')}>Admin</Link>
@@ -47,7 +64,7 @@ export default function Navbar() {
             <>
               <button
                 onClick={logout}
-                className="font-mono text-[13px] uppercase tracking-[0.12em] text-naskah-inksoft/70 hover:text-naskah-ink transition-colors"
+                className="font-mono text-[12px] uppercase tracking-[0.12em] text-naskah-inksoft/70 hover:text-naskah-ink transition-colors"
               >
                 Keluar
               </button>
@@ -72,7 +89,7 @@ export default function Navbar() {
           )}
         </div>
 
-        <button className="md:hidden p-2 -mr-2" onClick={() => setMenuBuka((v) => !v)} aria-label="Buka menu">
+        <button className="md:hidden p-2 -mr-2 shrink-0" onClick={() => setMenuBuka((v) => !v)} aria-label="Buka menu">
           <svg width="22" height="22" viewBox="0 0 22 22">
             <line x1="2" y1="6" x2="20" y2="6" stroke="#1C1C13" strokeWidth="1.8" />
             <line x1="2" y1="11" x2="20" y2="11" stroke="#1C1C13" strokeWidth="1.8" />
@@ -82,7 +99,7 @@ export default function Navbar() {
       </div>
 
       {menuBuka && (
-        <div className="md:hidden border-t border-naskah-aged bg-naskah-bg px-4 py-4 flex flex-col gap-4 font-mono text-sm uppercase tracking-wide">
+        <div className="md:hidden border-t border-naskah-aged px-4 py-4 flex flex-col gap-4 font-mono text-sm uppercase tracking-wide">
           <Link to="/" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Beranda</Link>
           {user?.role === 'admin' && (
             <Link to="/admin" onClick={() => setMenuBuka(false)} className="text-naskah-leather">Admin</Link>
@@ -101,6 +118,6 @@ export default function Navbar() {
           )}
         </div>
       )}
-    </nav>
+    </header>
   )
 }
