@@ -34,7 +34,7 @@ async function verifikasiCaptcha(token, ip) {
 }
 
 router.post('/register', authLimiter, async (req, res) => {
-  const { nama, username, password, captchaToken } = req.body
+  const { nama, username, email, password, captchaToken } = req.body
 
   const captchaValid = await verifikasiCaptcha(captchaToken, req.ip)
   if (!captchaValid) {
@@ -47,6 +47,12 @@ router.post('/register', authLimiter, async (req, res) => {
       message: 'Username 3-20 karakter, hanya huruf kecil, angka, dan underscore',
     })
   }
+  // Regex sederhana, cukup buat validasi format dasar (bukan verifikasi
+  // deliverability) — konsisten dengan validasi format lain di file ini.
+  const emailBersih = (email || '').trim().toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailBersih)) {
+    return res.status(400).json({ message: 'Email tidak valid' })
+  }
   if (!password || password.length < 6) {
     return res.status(400).json({ message: 'Kata sandi minimal 6 karakter' })
   }
@@ -54,15 +60,31 @@ router.post('/register', authLimiter, async (req, res) => {
     return res.status(400).json({ message: 'Nama tidak valid' })
   }
 
-  const sudahAda = await prisma.user.findUnique({ where: { username } })
-  if (sudahAda) {
+  const usernameSudahAda = await prisma.user.findUnique({ where: { username } })
+  if (usernameSudahAda) {
     return res.status(400).json({ message: 'Username sudah dipakai' })
+  }
+  // Pengecekan ke database — 1 email cuma boleh dipakai 1 akun.
+  const emailSudahAda = await prisma.user.findUnique({ where: { email: emailBersih } })
+  if (emailSudahAda) {
+    return res.status(400).json({ message: 'Email sudah terpakai, gunakan email lain' })
   }
 
   const hash = await bcrypt.hash(password, 10)
-  const user = await prisma.user.create({
-    data: { nama: nama.trim(), username, password: hash, namaPena: nama.trim() },
-  })
+  let user
+  try {
+    user = await prisma.user.create({
+      data: { nama: nama.trim(), username, email: emailBersih, password: hash, namaPena: nama.trim() },
+    })
+  } catch (err) {
+    // Jaga-jaga kalau ada 2 permintaan daftar bersamaan persis di detik yang
+    // sama dengan email/username sama — lolos dari pengecekan di atas, tapi
+    // tetap ketahan oleh constraint unik di database (kode error Prisma P2002).
+    if (err.code === 'P2002') {
+      return res.status(400).json({ message: 'Username atau email sudah terpakai' })
+    }
+    throw err
+  }
 
   const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: '7d' })
   const { password: _, ...userTanpaPassword } = user

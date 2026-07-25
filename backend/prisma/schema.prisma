@@ -11,6 +11,12 @@ model User {
   id        String    @id @default(cuid())
   nama      String
   username  String    @unique
+  // Nullable — akun lama (sebelum fitur ini ada) belum tentu punya email.
+  // Postgres memperlakukan banyak NULL sebagai "tidak sama satu sama lain",
+  // jadi @unique tetap aman dipasang tanpa perlu isi email dummy ke akun lama.
+  // Akun BARU tetap wajib isi email — itu divalidasi di kode (routes/auth.js),
+  // bukan di level skema.
+  email     String?   @unique
   password  String
   namaPena  String
   bio       String    @default("")

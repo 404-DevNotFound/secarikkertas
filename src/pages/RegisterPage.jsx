@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const [nama, setNama] = useState('')
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [captchaToken, setCaptchaToken] = useState(null)
   const [error, setError] = useState('')
@@ -24,6 +25,10 @@ export default function RegisterPage() {
       setError('Username 3-20 karakter: huruf kecil, angka, underscore')
       return
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Email tidak valid')
+      return
+    }
     if (password.length < 6) {
       setError('Kata sandi minimal 6 karakter')
       return
@@ -35,7 +40,7 @@ export default function RegisterPage() {
 
     setLoading(true)
     try {
-      await api.post('/auth/register', { nama, username, password, captchaToken })
+      await api.post('/auth/register', { nama, username, email: email.trim(), password, captchaToken })
       navigate('/login', { state: { pesanSukses: 'Akun berhasil dibuat. Silakan masuk.' } })
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal terhubung ke server, coba lagi')
@@ -54,6 +59,12 @@ export default function RegisterPage() {
             label="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value.toLowerCase())}
+          />
+          <InputField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <PasswordField label="Kata Sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
           <Captcha onVerify={setCaptchaToken} />
