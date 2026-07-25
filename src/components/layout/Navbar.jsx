@@ -14,6 +14,15 @@ function inisialDari(teks) {
   return (kata[0][0] + kata[1][0]).toUpperCase()
 }
 
+// Halaman sampul bukan route React Router — dia ditampilkan oleh App.jsx
+// berdasarkan flag session storage "sk_sudah_dibuka". Jadi buat "balik
+// ke sampul", hapus flag itu lalu hard-navigate ke "/" supaya App
+// mengevaluasi ulang dan menampilkan CoverPage lagi.
+function kembaliKeSampul() {
+  sessionStorage.removeItem('sk_sudah_dibuka')
+  window.location.href = '/'
+}
+
 export default function Navbar() {
   const { user, logout } = useAuth()
   const [menuBuka, setMenuBuka] = useState(false)
@@ -49,6 +58,13 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-5 shrink-0">
+          <button
+            onClick={kembaliKeSampul}
+            className="font-mono text-[12px] uppercase tracking-[0.12em] text-naskah-inksoft/70 hover:text-naskah-ink transition-colors inline-flex items-center gap-1"
+            title="Kembali ke sampul buku"
+          >
+            <span aria-hidden>←</span> Sampul
+          </button>
           <Link to="/" className={tautan('/')}>Beranda</Link>
           {user?.role === 'admin' && (
             <Link to="/admin" className={tautan('/admin')}>Admin</Link>
@@ -100,6 +116,7 @@ export default function Navbar() {
 
       {menuBuka && (
         <div className="md:hidden border-t border-naskah-aged px-4 py-4 flex flex-col gap-4 font-mono text-sm uppercase tracking-wide">
+          <button onClick={kembaliKeSampul} className="text-left text-naskah-inksoft">← Sampul</button>
           <Link to="/" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Beranda</Link>
           {user?.role === 'admin' && (
             <Link to="/admin" onClick={() => setMenuBuka(false)} className="text-naskah-leather">Admin</Link>
