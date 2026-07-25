@@ -3,6 +3,7 @@ import multer from 'multer'
 import sanitizeHtml from 'sanitize-html'
 import mammoth from 'mammoth'
 import pdfParse from 'pdf-parse'
+import { put, del } from '@vercel/blob'
 import prisma from '../data/prisma.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
 
@@ -11,6 +12,11 @@ const router = express.Router()
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
+})
+
+const uploadGambar = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // gambar maks 5MB
 })
 
 router.get('/', async (req, res) => {
@@ -35,6 +41,7 @@ router.get('/', async (req, res) => {
     likes: p.likes.length,
     kategori: p.kategori,
     tipe: p.tipe,
+    gambarSampul: p.gambarSampul,
   }))
 
   res.json(hasil)
@@ -82,8 +89,8 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
 
   const { judul, isi, kategori } = req.body
   const isiHtml = isi !== undefined ? sanitizeHtml(isi, {
-    allowedTags: ['p', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li'],
-    allowedAttributes: {},
+    allowedTags: ['p', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li', 'a'],
+    allowedAttributes: { a: ['href'] },
   }) : undefined
 
   const updated = await prisma.post.update({
@@ -97,6 +104,62 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
   res.json(updated)
 })
 
+// POST /api/posts/:id/cover - upload/ganti gambar sampul
+router.post('/:id/cover', requireAuth, uploadGambar.single('file'), async (req, res) => {
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!post || post.penulisId !== req.userId) {
+    return res.status(403).json({ message: 'Tidak diizinkan' })
+  }
+  if (!req.file) {
+    return res.status(400).json({ message: 'Tidak ada gambar yang diunggah' })
+  }
+  if (!req.file.mimetype.startsWith('image/')) {
+    return res.status(400).json({ message: 'File harus berupa gambar' })
+  }
+
+  // Hapus gambar lama dulu dari Blob storage kalau ada, biar tidak numpuk
+  // file "sampah" yang sudah tidak dipakai.
+  if (post.gambarSampul) {
+    try {
+      await del(post.gambarSampul)
+    } catch (err) {
+      console.warn('Gagal hapus gambar lama (mungkin sudah tidak ada):', err.message)
+    }
+  }
+
+  const namaUnik = `sampul/${req.params.id}-${Date.now()}-${req.file.originalname}`
+  const blob = await put(namaUnik, req.file.buffer, {
+    access: 'public',
+    contentType: req.file.mimetype,
+  })
+
+  const updated = await prisma.post.update({
+    where: { id: req.params.id },
+    data: { gambarSampul: blob.url },
+  })
+  res.json(updated)
+})
+
+// DELETE /api/posts/:id/cover - hapus gambar sampul (tanpa hapus naskahnya)
+router.delete('/:id/cover', requireAuth, async (req, res) => {
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!post || post.penulisId !== req.userId) {
+    return res.status(403).json({ message: 'Tidak diizinkan' })
+  }
+  if (post.gambarSampul) {
+    try {
+      await del(post.gambarSampul)
+    } catch (err) {
+      console.warn('Gagal hapus file gambar:', err.message)
+    }
+  }
+  const updated = await prisma.post.update({
+    where: { id: req.params.id },
+    data: { gambarSampul: null },
+  })
+  res.json(updated)
+})
+
 router.delete('/:id', requireAuth, async (req, res) => {
   const post = await prisma.post.findUnique({ where: { id: req.params.id } })
   if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
@@ -104,8 +167,15 @@ router.delete('/:id', requireAuth, async (req, res) => {
     return res.status(403).json({ message: 'Tidak diizinkan' })
   }
   if (!['draft', 'ditolak'].includes(post.status)) {
-    // Naskah yang sudah terbit HANYA bisa dihapus admin (lewat /api/admin/posts/:id)
     return res.status(400).json({ message: 'Naskah yang sudah terbit hanya bisa dihapus oleh admin' })
+  }
+
+  if (post.gambarSampul) {
+    try {
+      await del(post.gambarSampul)
+    } catch (err) {
+      console.warn('Gagal hapus gambar sampul saat hapus naskah:', err.message)
+    }
   }
 
   await prisma.post.delete({ where: { id: req.params.id } })
@@ -173,8 +243,8 @@ router.post('/:id/import', requireAuth, upload.single('file'), async (req, res) 
     .join('')
 
   const isiHtml = sanitizeHtml(paragraf, {
-    allowedTags: ['p', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li'],
-    allowedAttributes: {},
+    allowedTags: ['p', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li', 'a'],
+    allowedAttributes: { a: ['href'] },
   })
 
   const updated = await prisma.post.update({
@@ -219,8 +289,6 @@ router.get('/:id/comments', async (req, res) => {
   res.json(hasil)
 })
 
-// POST /api/posts/:id/comments - SEKARANG BOLEH TANPA LOGIN (anonim)
-// optionalAuth: kalau ada token valid, req.userId keisi; kalau tidak, null.
 router.post('/:id/comments', optionalAuth, async (req, res) => {
   const { isi, namaTamu } = req.body
   if (!isi || !isi.trim()) {
@@ -234,8 +302,6 @@ router.post('/:id/comments', optionalAuth, async (req, res) => {
       isi: isiBersih,
       postId: req.params.id,
       userId: req.userId || null,
-      // Kalau tidak login, pakai nama yang diketik (dibersihkan juga),
-      // atau "Anonim" kalau kosong.
       namaTamu: req.userId ? null : (sanitizeHtml((namaTamu || '').trim(), { allowedTags: [], allowedAttributes: {} }) || 'Anonim'),
     },
     include: { user: true },

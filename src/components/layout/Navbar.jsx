@@ -14,8 +14,8 @@ export default function Navbar() {
             <path d="M4 3 L20 3 L22 6 L22 23 L4 23 Z" fill="#FAF6EC" stroke="#FAF6EC" strokeWidth="1.3" />
             <path d="M20 3 L20 6 L22 6 Z" fill="#DDD5C0" stroke="#FAF6EC" strokeWidth="1" />
             <line x1="7" y1="10" x2="17" y2="10" stroke="#3F6C51" strokeWidth="1.2" />
-            <line x1="7" y1="14" x2="17" y2="14" stroke="#3F6C51" strokeWidth="1.2" />
-            <line x1="7" y1="18" x2="13" y2="18" stroke="#3F6C51" strokeWidth="1.2" />
+            <line x1="7" y1="14" x2="17" y2="14" stroke="#2B5B8C" strokeWidth="1.2" />
+            <line x1="7" y1="18" x2="13" y2="18" stroke="#C4436B" strokeWidth="1.2" />
           </svg>
           <span className="font-judul text-xl font-semibold tracking-tight text-kertas">
             secarikkertas
@@ -62,6 +62,14 @@ export default function Navbar() {
             <line x1="2" y1="16" x2="20" y2="16" stroke="#FAF6EC" strokeWidth="1.8" />
           </svg>
         </button>
+      </div>
+
+      {/* Garis aksen warna-warni khas buku tulis, tipis di paling bawah navbar */}
+      <div className="h-[3px] flex">
+        <div className="flex-1 bg-stempel" />
+        <div className="flex-1 bg-biru" />
+        <div className="flex-1 bg-merahmuda" />
+        <div className="flex-1 bg-mustard" />
       </div>
 
       {menuBuka && (
