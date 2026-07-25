@@ -14,7 +14,10 @@ const PANJANG_PITA = {
 
 function panjangUntuk(pathname) {
   if (PANJANG_PITA[pathname] != null) return PANJANG_PITA[pathname]
-  if (pathname.startsWith('/post/')) return 118
+  // Halaman baca discroll cukup jauh & pita ini menggantung tetap di
+  // atas viewport (tidak ikut scroll bareng teks) — dibikin pendek biar
+  // gak nutupin baris naskah.
+  if (pathname.startsWith('/post/')) return 56
   if (pathname.startsWith('/dashboard/tulis')) return 100
   return 94
 }
@@ -25,7 +28,7 @@ export default function Ribbon() {
 
   return (
     <div
-      className="absolute left-1/2 top-0 z-30 pointer-events-none transition-[height] duration-300 ease-out"
+      className="hidden sm:block absolute left-1/2 top-0 z-30 pointer-events-none transition-[height] duration-300 ease-out"
       style={{
         width: '24px',
         height: `${tinggi}px`,

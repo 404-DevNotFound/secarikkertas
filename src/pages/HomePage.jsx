@@ -108,7 +108,7 @@ export default function HomePage() {
           </ul>
 
           {populer.length > 0 && (
-            <div className="mt-auto pt-6 border-t border-naskah-aged/60">
+            <div className="mt-auto pt-6 pb-6 sm:pb-0 border-t border-naskah-aged/60">
               <h3 className="font-ketik text-[11px] uppercase tracking-[0.2em] text-naskah-inksoft/70 mb-3">
                 Unggahan Terbaru
               </h3>

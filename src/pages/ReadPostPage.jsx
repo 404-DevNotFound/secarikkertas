@@ -75,8 +75,11 @@ export default function ReadPostPage() {
       <div
         className="relative pl-8 sm:pl-12 pr-1 select-none"
         style={{
-          backgroundImage:
-            'repeating-linear-gradient(to bottom, transparent, transparent 37px, #C9DCEE 38px)',
+          // Teknik yang sama dipakai di body & .garis-buku (linear-gradient +
+          // background-size eksplisit) — lebih konsisten ketebalannya di
+          // berbagai layar/DPI dibanding repeating-linear-gradient multi-stop.
+          backgroundImage: 'linear-gradient(#C9DCEE 1px, transparent 1px)',
+          backgroundSize: '100% 38px',
           backgroundPosition: '0 34px',
         }}
         onCopy={cegahSalin}
