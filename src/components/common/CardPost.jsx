@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
+import { useAuth } from '../../context/AuthContext'
+import Toast from './Toast'
 
 // Rotasi warna badge kategori — supaya tidak monoton satu warna terus
 const WARNA_BADGE = [
@@ -50,18 +52,28 @@ function bersihkanRingkasan(html) {
 export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAwal = 0, likedAwal = false, kategori, tipe, gambarSampul, tanggalTerbit }) {
   const [liked, setLiked] = useState(likedAwal)
   const [likes, setLikes] = useState(likesAwal)
+  const [toast, setToast] = useState(null)
+  const { user } = useAuth()
   const warna = warnaDariId(id)
   const sudut = miringDariId(id)
 
   async function handleLike() {
+    // Belum login → jangan pura-pura berhasil (toggle lalu balik lagi),
+    // langsung kasih tahu supaya jelas kenapa "suka"-nya gak nempel.
+    if (!user) {
+      setToast({ message: 'Masuk dulu untuk menyukai tulisan ini.', type: 'error' })
+      return
+    }
+
     const nilaiBaru = !liked
     setLiked(nilaiBaru)
     setLikes((n) => (nilaiBaru ? n + 1 : Math.max(0, n - 1)))
     try {
       await api.post(`/posts/${id}/like`, { liked: nilaiBaru })
-    } catch {
+    } catch (err) {
       setLiked(!nilaiBaru)
       setLikes((n) => (nilaiBaru ? Math.max(0, n - 1) : n + 1))
+      setToast({ message: err.response?.data?.message || 'Gagal menyimpan suka, coba lagi.', type: 'error' })
     }
   }
 
@@ -133,6 +145,12 @@ export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAw
           </div>
         </div>
       </div>
+
+      <Toast
+        message={toast?.message}
+        type={toast?.type}
+        onClose={() => setToast(null)}
+      />
     </article>
   )
 }
