@@ -4,12 +4,13 @@ import api from '../api/axios'
 import Button from '../components/common/Button'
 import ConfirmModal from '../components/common/ConfirmModal'
 import Toast from '../components/common/Toast'
+import BookSpread from '../components/layout/BookSpread'
 import { useAuth } from '../context/AuthContext'
 
 const LABEL_STATUS = {
-  draft: { teks: 'Draf', warna: 'bg-kertas-line text-tinta-soft' },
-  diajukan: { teks: 'Menunggu Tinjauan', warna: 'bg-stabilo-light text-stabilo' },
-  terbit: { teks: 'Terbit', warna: 'bg-stempel-light text-stempel-dark' },
+  draft: { teks: 'Draf', warna: 'bg-naskah-aged/60 text-naskah-inksoft' },
+  diajukan: { teks: 'Menunggu Tinjauan', warna: 'bg-[#F4E3C7] text-[#8A5A1E]' },
+  terbit: { teks: 'Terbit', warna: 'bg-naskah-mosslight text-naskah-moss' },
   ditolak: { teks: 'Ditolak', warna: 'bg-red-100 text-red-700' },
 }
 
@@ -61,55 +62,98 @@ export default function WriterDashboard() {
     }
   }
 
+  const jumlah = {
+    draft: drafts.filter((d) => d.status === 'draft').length,
+    diajukan: drafts.filter((d) => d.status === 'diajukan').length,
+    terbit: drafts.filter((d) => d.status === 'terbit').length,
+  }
+
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
-        <h1 className="font-judul text-xl font-semibold text-tinta">Dasbor Menulis</h1>
-        <Button onClick={buatBaru} className="w-full sm:w-auto">+ Tulisan Baru</Button>
-      </div>
+    <>
+      <BookSpread
+        kiri={
+          <div className="flex flex-col h-full">
+            <span className="font-ketik text-[11px] uppercase tracking-[0.25em] text-naskah-leather mb-3">
+              Meja Kerja
+            </span>
+            <h1 className="font-naskah text-3xl sm:text-4xl leading-tight text-naskah-ink mb-4">
+              Dasbor Menulis
+            </h1>
+            <p className="font-ketik text-sm text-naskah-inksoft leading-relaxed mb-8">
+              Kelola naskahmu di sini — dari draf, diajukan untuk ditinjau, sampai terbit.
+            </p>
 
-      <div className="space-y-3">
-        {drafts.map((d) => {
-          const status = LABEL_STATUS[d.status] || LABEL_STATUS.draft
-          const bisaDihapus = ['draft', 'ditolak'].includes(d.status)
-          return (
-            <div key={d.id} className="bg-white p-4 border border-kertas-line">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                <Link to={`/dashboard/tulis/${d.id}`} className="min-w-0">
-                  <p className="font-judul text-lg text-tinta truncate">{d.judul}</p>
-                </Link>
-                <span className={`font-mono text-[10px] uppercase px-2 py-1 shrink-0 self-start ${status.warna}`}>
-                  {status.teks}
-                </span>
+            <Button
+              onClick={buatBaru}
+              className="!bg-naskah-leather !text-naskah-bg hover:!bg-naskah-leatherdark !font-ketik w-full sm:w-auto mb-10"
+            >
+              + Tulisan Baru
+            </Button>
+
+            <div className="mt-auto grid grid-cols-3 gap-4 pt-6 border-t border-naskah-aged/60">
+              <div>
+                <p className="font-naskah text-2xl text-naskah-ink">{jumlah.draft}</p>
+                <p className="font-ketik text-[11px] uppercase tracking-wide text-naskah-inksoft/70">Draf</p>
               </div>
-
-              {d.status === 'ditolak' && d.catatanAdmin && (
-                <p className="font-baca text-sm text-red-600 mt-2">Catatan admin: {d.catatanAdmin}</p>
-              )}
-
-              {bisaDihapus && (
-                <div className="flex flex-wrap gap-4 mt-3">
-                  <button
-                    onClick={() => ajukan(d.id)}
-                    className="font-mono text-xs uppercase text-stempel-dark underline"
-                  >
-                    {isAdmin ? 'Terbitkan Langsung' : 'Ajukan untuk Ditinjau'}
-                  </button>
-                  <button
-                    onClick={() => mintaKonfirmasiHapus(d.id, d.judul)}
-                    className="font-mono text-xs uppercase text-red-600 underline"
-                  >
-                    Hapus Draf
-                  </button>
-                </div>
-              )}
+              <div>
+                <p className="font-naskah text-2xl text-naskah-ink">{jumlah.diajukan}</p>
+                <p className="font-ketik text-[11px] uppercase tracking-wide text-naskah-inksoft/70">Ditinjau</p>
+              </div>
+              <div>
+                <p className="font-naskah text-2xl text-naskah-moss">{jumlah.terbit}</p>
+                <p className="font-ketik text-[11px] uppercase tracking-wide text-naskah-inksoft/70">Terbit</p>
+              </div>
             </div>
-          )
-        })}
-        {drafts.length === 0 && (
-          <p className="font-baca italic text-tinta-faint">Belum ada tulisan. Mulai menulis sekarang.</p>
-        )}
-      </div>
+          </div>
+        }
+        kanan={
+          <div className="space-y-3">
+            <h3 className="font-ketik text-[11px] uppercase tracking-[0.2em] text-naskah-inksoft/70 mb-4">
+              Naskahmu
+            </h3>
+            {drafts.map((d) => {
+              const status = LABEL_STATUS[d.status] || LABEL_STATUS.draft
+              const bisaDihapus = ['draft', 'ditolak'].includes(d.status)
+              return (
+                <div key={d.id} className="bg-naskah-surface/60 p-4 border border-naskah-aged/70">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                    <Link to={`/dashboard/tulis/${d.id}`} className="min-w-0">
+                      <p className="font-naskah text-lg text-naskah-ink truncate">{d.judul}</p>
+                    </Link>
+                    <span className={`font-ketik text-[10px] uppercase px-2 py-1 shrink-0 self-start ${status.warna}`}>
+                      {status.teks}
+                    </span>
+                  </div>
+
+                  {d.status === 'ditolak' && d.catatanAdmin && (
+                    <p className="font-ketik text-xs text-red-600 mt-2">Catatan admin: {d.catatanAdmin}</p>
+                  )}
+
+                  {bisaDihapus && (
+                    <div className="flex flex-wrap gap-4 mt-3">
+                      <button
+                        onClick={() => ajukan(d.id)}
+                        className="font-ketik text-xs uppercase text-naskah-leather underline"
+                      >
+                        {isAdmin ? 'Terbitkan Langsung' : 'Ajukan untuk Ditinjau'}
+                      </button>
+                      <button
+                        onClick={() => mintaKonfirmasiHapus(d.id, d.judul)}
+                        className="font-ketik text-xs uppercase text-red-600 underline"
+                      >
+                        Hapus Draf
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {drafts.length === 0 && (
+              <p className="font-ketik italic text-sm text-naskah-inksoft/70">Belum ada tulisan. Mulai menulis sekarang.</p>
+            )}
+          </div>
+        }
+      />
 
       <ConfirmModal
         open={!!targetHapus}
@@ -121,6 +165,6 @@ export default function WriterDashboard() {
       />
 
       <Toast message={toast?.message} type={toast?.type} onClose={() => setToast(null)} />
-    </div>
+    </>
   )
 }

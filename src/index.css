@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Literata:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Literata:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -73,6 +73,52 @@ body {
   width: 70px;
   height: 22px;
   opacity: 0.85;
+}
+
+/* ===== Efek "buku terbuka" untuk BookSpread (HomePage & WriterDashboard) ===== */
+
+/* Bayangan jilid di tengah, meniru lipatan kertas menuju ke dalam buku.
+   Hanya muncul di md+ (saat dua halaman disandingkan); di HP, halaman
+   ditumpuk vertikal jadi efek jilid-tengah tidak relevan. */
+@media (min-width: 768px) {
+  .jilid-tengah::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 40px;
+    transform: translateX(-50%);
+    background: linear-gradient(
+      to right,
+      rgba(28, 28, 19, 0) 0%,
+      rgba(28, 28, 19, 0.12) 45%,
+      rgba(28, 28, 19, 0.12) 55%,
+      rgba(28, 28, 19, 0) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Gradasi halus di tepi dalam tiap halaman (dekat jilid), kesan kertas melengkung */
+  .tepi-kiri::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    width: 24px;
+    background: linear-gradient(to left, rgba(28, 28, 19, 0.06), transparent);
+    pointer-events: none;
+  }
+  .tepi-kanan::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 24px;
+    background: linear-gradient(to right, rgba(28, 28, 19, 0.06), transparent);
+    pointer-events: none;
+  }
 }
 
 ::selection {
