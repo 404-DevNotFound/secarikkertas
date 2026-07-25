@@ -1,9 +1,11 @@
 import express from 'express'
+import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import rateLimit from 'express-rate-limit'
 import prisma from '../data/prisma.js'
 import { requireAuth, SECRET } from '../middleware/auth.js'
+import { kirimKodeVerifikasi } from '../utils/email.js'
 
 const router = express.Router()
 
@@ -15,6 +17,25 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 })
+
+// Endpoint kirim-ulang kode dibatasi lebih ketat — ini yang paling gampang
+// dipakai buat spam kalau tidak dibatasi (tinggal panggil berkali-kali,
+// tanpa perlu isi form apapun).
+const resendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: 'Terlalu banyak percobaan kirim ulang, coba lagi beberapa menit lagi' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+const MASA_BERLAKU_KODE_MS = 5 * 60 * 1000 // 5 menit
+
+function buatKodeVerifikasi() {
+  // Angka 6 digit, boleh ada 0 di depan (dipadding), pakai crypto biar
+  // tidak gampang ditebak (bukan Math.random()).
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0')
+}
 
 // Verifikasi token Cloudflare Turnstile ke server Cloudflare
 async function verifikasiCaptcha(token, ip) {
@@ -34,7 +55,7 @@ async function verifikasiCaptcha(token, ip) {
 }
 
 router.post('/register', authLimiter, async (req, res) => {
-  const { nama, username, email, password, captchaToken } = req.body
+  const { username, email, password, captchaToken } = req.body
 
   const captchaValid = await verifikasiCaptcha(captchaToken, req.ip)
   if (!captchaValid) {
@@ -56,9 +77,6 @@ router.post('/register', authLimiter, async (req, res) => {
   if (!password || password.length < 6) {
     return res.status(400).json({ message: 'Kata sandi minimal 6 karakter' })
   }
-  if (!nama || nama.trim().length < 2) {
-    return res.status(400).json({ message: 'Nama tidak valid' })
-  }
 
   const usernameSudahAda = await prisma.user.findUnique({ where: { username } })
   if (usernameSudahAda) {
@@ -71,10 +89,21 @@ router.post('/register', authLimiter, async (req, res) => {
   }
 
   const hash = await bcrypt.hash(password, 10)
+  const kode = buatKodeVerifikasi()
   let user
   try {
     user = await prisma.user.create({
-      data: { nama: nama.trim(), username, email: emailBersih, password: hash, namaPena: nama.trim() },
+      data: {
+        username,
+        email: emailBersih,
+        password: hash,
+        // Nama pena diisi otomatis dari username — bisa diganti sendiri
+        // nanti lewat halaman profil.
+        namaPena: username,
+        emailVerified: false,
+        kodeVerifikasi: kode,
+        kodeVerifikasiExpiry: new Date(Date.now() + MASA_BERLAKU_KODE_MS),
+      },
     })
   } catch (err) {
     // Jaga-jaga kalau ada 2 permintaan daftar bersamaan persis di detik yang
@@ -86,9 +115,82 @@ router.post('/register', authLimiter, async (req, res) => {
     throw err
   }
 
-  const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: '7d' })
-  const { password: _, ...userTanpaPassword } = user
+  try {
+    await kirimKodeVerifikasi(emailBersih, kode)
+  } catch (err) {
+    // Kalau emailnya gagal terkirim sama sekali, jangan tinggalkan akun
+    // "mati" yang gak bisa diverifikasi maupun didaftarkan ulang — hapus
+    // lagi baris yang baru dibuat, dan minta user coba daftar lagi.
+    console.error('Gagal kirim email verifikasi:', err)
+    await prisma.user.delete({ where: { id: user.id } })
+    return res.status(502).json({ message: 'Gagal mengirim email verifikasi, coba lagi' })
+  }
+
+  res.json({ message: 'Kode verifikasi telah dikirim ke email kamu', email: emailBersih })
+})
+
+// Langkah 2 registrasi: user memasukkan kode 6 digit yang dikirim ke email.
+// Kalau cocok & belum kedaluwarsa, akun jadi aktif dan langsung login
+// (dikasih token), sama seperti alur login biasa.
+router.post('/verify-email', authLimiter, async (req, res) => {
+  const { email, kode } = req.body
+  const emailBersih = (email || '').trim().toLowerCase()
+
+  const user = await prisma.user.findUnique({ where: { email: emailBersih } })
+  if (!user) {
+    return res.status(400).json({ message: 'Email tidak ditemukan' })
+  }
+  if (user.emailVerified) {
+    return res.status(400).json({ message: 'Akun sudah terverifikasi, silakan masuk' })
+  }
+  if (!user.kodeVerifikasi || !user.kodeVerifikasiExpiry) {
+    return res.status(400).json({ message: 'Belum ada kode aktif, minta kirim ulang' })
+  }
+  if (user.kodeVerifikasiExpiry < new Date()) {
+    return res.status(400).json({ message: 'Kode sudah kedaluwarsa, minta kirim ulang' })
+  }
+  if (String(kode || '').trim() !== user.kodeVerifikasi) {
+    return res.status(400).json({ message: 'Kode salah' })
+  }
+
+  const userTerverifikasi = await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true, kodeVerifikasi: null, kodeVerifikasiExpiry: null },
+  })
+
+  const token = jwt.sign({ userId: userTerverifikasi.id }, SECRET, { expiresIn: '7d' })
+  const { password: _, ...userTanpaPassword } = userTerverifikasi
   res.json({ token, user: userTanpaPassword })
+})
+
+// Kirim ulang kode verifikasi — dipakai kalau kode sebelumnya kedaluwarsa
+// (5 menit) atau emailnya tidak sampai.
+router.post('/resend-code', resendLimiter, async (req, res) => {
+  const { email } = req.body
+  const emailBersih = (email || '').trim().toLowerCase()
+
+  const user = await prisma.user.findUnique({ where: { email: emailBersih } })
+  if (!user) {
+    return res.status(400).json({ message: 'Email tidak ditemukan' })
+  }
+  if (user.emailVerified) {
+    return res.status(400).json({ message: 'Akun sudah terverifikasi, silakan masuk' })
+  }
+
+  const kode = buatKodeVerifikasi()
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { kodeVerifikasi: kode, kodeVerifikasiExpiry: new Date(Date.now() + MASA_BERLAKU_KODE_MS) },
+  })
+
+  try {
+    await kirimKodeVerifikasi(emailBersih, kode)
+  } catch (err) {
+    console.error('Gagal kirim ulang email verifikasi:', err)
+    return res.status(502).json({ message: 'Gagal mengirim email, coba lagi' })
+  }
+
+  res.json({ message: 'Kode verifikasi baru telah dikirim' })
 })
 
 router.post('/login', authLimiter, async (req, res) => {
@@ -106,6 +208,15 @@ router.post('/login', authLimiter, async (req, res) => {
   }
   if (user.banned) {
     return res.status(403).json({ message: 'Akun ini telah dinonaktifkan' })
+  }
+  if (!user.emailVerified) {
+    // Kode khusus (bukan cuma pesan teks) supaya frontend bisa arahkan
+    // otomatis ke layar verifikasi, bukan cuma nampilin error biasa.
+    return res.status(403).json({
+      message: 'Email belum diverifikasi, cek kode yang dikirim ke emailmu',
+      code: 'EMAIL_NOT_VERIFIED',
+      email: user.email,
+    })
   }
 
   const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: '7d' })

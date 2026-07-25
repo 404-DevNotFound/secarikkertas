@@ -33,6 +33,10 @@ export default function LoginPage() {
       await login(username, password, captchaToken)
       navigate('/dashboard')
     } catch (err) {
+      if (err.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+        navigate('/register', { state: { emailBelumTerverifikasi: err.response.data.email } })
+        return
+      }
       setError(err.response?.data?.message || 'Gagal terhubung ke server, coba lagi')
     } finally {
       setLoading(false)
