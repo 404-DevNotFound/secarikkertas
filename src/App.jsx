@@ -6,6 +6,8 @@ import AdminRoute from './routes/AdminRoute'
 
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
+import Ribbon from './components/layout/Ribbon'
+import Pencil from './components/layout/Pencil'
 
 import CoverPage from './pages/CoverPage'
 import HomePage from './pages/HomePage'
@@ -49,20 +51,12 @@ function App() {
             membulat/bayangan mengambang. Struktur di dalamnya (navbar,
             spread dua halaman, footer) tidak berubah. */}
         <div className="relative w-full min-h-screen bg-naskah-bg overflow-x-hidden">
-          {/* Pita pembatas buku (bookmark ribbon), menggantung dari tengah atas */}
-          <div
-            className="absolute left-1/2 top-0 z-30 pointer-events-none"
-            style={{
-              width: '24px',
-              height: '94px',
-              background: 'linear-gradient(180deg, #B4405C 0%, #8A2C43 100%)',
-              clipPath: 'polygon(0 0, 100% 0, 100% 76%, 50% 100%, 0 76%)',
-              transform: 'translateX(-50%) rotate(-1.3deg)',
-              boxShadow: '1px 2px 5px rgba(28,28,19,0.3)',
-            }}
-          >
-            <div className="absolute inset-y-0 left-1/2 w-px bg-black/20" style={{ transform: 'translateX(-50%)' }} />
-          </div>
+          {/* Pita pembatas buku (bookmark ribbon), menggantung dari tengah atas —
+              panjangnya beda-beda tiap halaman, lihat Ribbon.jsx */}
+          <Ribbon />
+
+          {/* Pensil dekoratif melintang di lipatan tengah buku, sama di semua halaman */}
+          <Pencil />
 
           {/* Buku besar — sekarang mengisi seluruh viewport (100vh),
               bukan lagi kartu mengambang di atas latar. */}

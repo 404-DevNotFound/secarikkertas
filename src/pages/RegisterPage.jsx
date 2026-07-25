@@ -5,6 +5,7 @@ import InputField from '../components/common/InputField'
 import PasswordField from '../components/common/PasswordField'
 import Button from '../components/common/Button'
 import Captcha from '../components/common/Captcha'
+import PaperCard from '../components/layout/PaperCard'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -44,25 +45,27 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <h1 className="font-judul text-2xl font-semibold text-tinta mb-8">Daftar</h1>
-      <form onSubmit={handleSubmit}>
-        <InputField label="Nama" value={nama} onChange={(e) => setNama(e.target.value)} />
-        <InputField
-          label="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value.toLowerCase())}
-        />
-        <PasswordField label="Kata Sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <Captcha onVerify={setCaptchaToken} />
-        {error && <p className="font-mono text-xs text-stabilo mb-4">{error}</p>}
-        <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-          {loading ? 'Memproses...' : 'Daftar'}
-        </Button>
-      </form>
-      <p className="font-baca text-sm text-tinta-soft mt-6">
-        Sudah punya akun? <Link to="/login" className="text-stempel-dark underline">Masuk</Link>
-      </p>
+    <div className="min-h-full flex items-center justify-center px-4 sm:px-6 py-12 sm:py-16">
+      <PaperCard>
+        <h1 className="font-judul text-2xl font-semibold text-tinta mb-8">Daftar</h1>
+        <form onSubmit={handleSubmit}>
+          <InputField label="Nama" value={nama} onChange={(e) => setNama(e.target.value)} />
+          <InputField
+            label="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.toLowerCase())}
+          />
+          <PasswordField label="Kata Sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Captcha onVerify={setCaptchaToken} />
+          {error && <p className="font-mono text-xs text-stabilo mb-4">{error}</p>}
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+            {loading ? 'Memproses...' : 'Daftar'}
+          </Button>
+        </form>
+        <p className="font-baca text-sm text-tinta-soft mt-6">
+          Sudah punya akun? <Link to="/login" className="text-stempel-dark underline">Masuk</Link>
+        </p>
+      </PaperCard>
     </div>
   )
 }
