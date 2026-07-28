@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import NotificationBell from '../feature/NotificationBell'
+import DarkModeToggle from '../common/DarkModeToggle'
 
 const NAMA_BULAN = [
   'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
@@ -79,6 +80,8 @@ export default function Navbar() {
             </>
           )}
 
+          <DarkModeToggle />
+
           {user ? (
             <>
               <button
@@ -108,13 +111,16 @@ export default function Navbar() {
           )}
         </div>
 
-        <button className="md:hidden p-2 -mr-2 shrink-0" onClick={() => setMenuBuka((v) => !v)} aria-label="Buka menu">
-          <svg width="22" height="22" viewBox="0 0 22 22">
-            <line x1="2" y1="6" x2="20" y2="6" stroke="#1C1C13" strokeWidth="1.8" />
-            <line x1="2" y1="11" x2="20" y2="11" stroke="#1C1C13" strokeWidth="1.8" />
-            <line x1="2" y1="16" x2="20" y2="16" stroke="#1C1C13" strokeWidth="1.8" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1 md:hidden shrink-0">
+          <DarkModeToggle />
+          <button className="p-2 -mr-2" onClick={() => setMenuBuka((v) => !v)} aria-label="Buka menu">
+            <svg width="22" height="22" viewBox="0 0 22 22" className="text-naskah-ink">
+              <line x1="2" y1="6" x2="20" y2="6" stroke="currentColor" strokeWidth="1.8" />
+              <line x1="2" y1="11" x2="20" y2="11" stroke="currentColor" strokeWidth="1.8" />
+              <line x1="2" y1="16" x2="20" y2="16" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {menuBuka && (

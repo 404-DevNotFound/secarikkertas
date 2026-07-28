@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext'
 // -> siap_terbit -> terbit. "ditolak" bisa terjadi dari diajukan/ditinjau.
 const LABEL_STATUS = {
   draft: { teks: 'Draf', warna: 'bg-naskah-aged/60 text-naskah-inksoft' },
-  diajukan: { teks: 'Dalam Antrean', warna: 'bg-[#F4E3C7] text-[#8A5A1E]' },
+  diajukan: { teks: 'Dalam Antrean', warna: 'bg-naskah-amberlight text-naskah-amber' },
   ditinjau: { teks: 'Sedang Diperiksa', warna: 'bg-biru-light text-biru' },
   siap_terbit: { teks: 'Siap Terbit', warna: 'bg-mustard-light text-mustard' },
   terbit: { teks: 'Terbit', warna: 'bg-naskah-mosslight text-naskah-moss' },

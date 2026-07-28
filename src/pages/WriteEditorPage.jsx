@@ -4,6 +4,7 @@ import api from '../api/axios'
 import TextEditorContainer from '../components/feature/TextEditorContainer'
 import Button from '../components/common/Button'
 import Toast from '../components/common/Toast'
+import TagInput from '../components/common/TagInput'
 import BookSpread from '../components/layout/BookSpread'
 import { useAuth } from '../context/AuthContext'
 
@@ -14,7 +15,7 @@ export default function WriteEditorPage() {
   const isAdmin = user?.role === 'admin'
   const [judul, setJudul] = useState('')
   const [isi, setIsi] = useState('')
-  const [genre, setGenre] = useState('')
+  const [tags, setTags] = useState([])
   const [tipe, setTipe] = useState('cerpen')
   const [status, setStatus] = useState('draft')
   const [gambarSampul, setGambarSampul] = useState(null)
@@ -28,8 +29,8 @@ export default function WriteEditorPage() {
   const sudahDimuat = useRef(false)
   const fileGambarRef = useRef(null)
 
-  // Artikel edukasi tidak punya genre bebas — selalu "Umum".
-  const genreTerkunci = tipe === 'artikel'
+  // Artikel edukasi tidak punya tag bebas — selalu "Umum".
+  const tagsTerkunci = tipe === 'artikel'
 
   // Ambil daftar genre siap-pakai dari backend (tabel Genre) buat isi dropdown.
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function WriteEditorPage() {
       setJudul(res.data.judul)
       setIsi(res.data.isi || '')
       setTipe(res.data.tipe || 'cerpen')
-      setGenre(res.data.tipe === 'artikel' ? 'Umum' : (res.data.kategori || ''))
+      setTags(res.data.tipe === 'artikel' ? ['Umum'] : (res.data.tags || []))
       setStatus(res.data.status || 'draft')
       setGambarSampul(res.data.gambarSampul || null)
       sudahDimuat.current = true
@@ -57,14 +58,14 @@ export default function WriteEditorPage() {
 
     return () => clearTimeout(timerRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [judul, isi, genre])
+  }, [judul, isi, tags])
 
   async function simpanKeServer(tampilkanNotifikasi) {
     try {
-      // Artikel selalu "Umum". Genre kosong (cerpen) -> otomatis "Umum" juga,
-      // jangan biarkan tersimpan string kosong.
-      const genreDikirim = genreTerkunci ? 'Umum' : (genre.trim() || 'Umum')
-      await api.put(`/posts/${id}/draft`, { judul, isi, kategori: genreDikirim })
+      // Artikel selalu "Umum". Tidak ada tag dipilih (cerpen) -> otomatis
+      // "Umum" juga, jangan biarkan tersimpan tanpa tag sama sekali.
+      const tagsDikirim = tagsTerkunci ? ['Umum'] : (tags.length > 0 ? tags : ['Umum'])
+      await api.put(`/posts/${id}/draft`, { judul, isi, tags: tagsDikirim })
       setStatusSimpan('Tersimpan')
       if (tampilkanNotifikasi) setToast({ message: 'Tulisan berhasil disimpan.', type: 'sukses' })
       return true
@@ -208,32 +209,23 @@ export default function WriteEditorPage() {
               value={judul}
               onChange={(e) => setJudul(e.target.value)}
               placeholder="Judul tulisan..."
-              className="w-full px-3 py-2.5 mb-6 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-naskah text-xl text-naskah-ink transition-colors"
+              className="w-full px-3 py-2.5 mb-6 bg-kertas border border-naskah-aged focus:border-naskah-leather outline-none font-naskah text-xl text-naskah-ink transition-colors"
             />
 
             <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-2">
-              Genre
+              Tag
             </p>
-            {genreTerkunci ? (
+            {tagsTerkunci ? (
               <div className="w-full px-3 py-2.5 mb-2 bg-naskah-aged/30 border border-naskah-aged font-baca text-sm text-naskah-inksoft/70">
                 Umum
               </div>
             ) : (
-              <select
-                value={genre}
-                onChange={(e) => setGenre(e.target.value)}
-                className="w-full px-3 py-2.5 mb-2 bg-white border border-naskah-aged focus:border-naskah-leather outline-none font-baca text-sm text-naskah-ink transition-colors"
-              >
-                <option value="">Umum (default)</option>
-                {daftarGenre.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
+              <TagInput value={tags} onChange={setTags} saran={daftarGenre} />
             )}
             <p className="font-ketik text-[10px] text-naskah-inksoft/50 mb-8">
-              {genreTerkunci
-                ? 'Artikel edukasi selalu memakai genre "Umum" dan tidak bisa diganti.'
-                : 'Pilih genre yang paling sesuai dengan isi ceritanya.'}
+              {tagsTerkunci
+                ? 'Artikel edukasi selalu memakai tag "Umum" dan tidak bisa diganti.'
+                : 'Pilih atau buat beberapa tag yang paling sesuai dengan isi ceritanya.'}
             </p>
 
             <div className="mt-auto flex flex-col gap-3 pt-6 border-t border-naskah-aged/60">

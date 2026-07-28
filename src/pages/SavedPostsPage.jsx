@@ -39,7 +39,7 @@ export default function SavedPostsPage() {
           likes={p.likes}
           likedAwal={p.sudahSuka}
           disimpanAwal
-          kategori={p.kategori}
+          tags={p.tags}
           tipe={p.tipe}
           gambarSampul={p.gambarSampul}
           tanggalTerbit={p.tanggalTerbit}

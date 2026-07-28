@@ -8,7 +8,7 @@ import BookSpread from '../components/layout/BookSpread'
 // Label & urutan tahap pemeriksaan naskah — dipakai supaya admin dan
 // penulis melihat istilah yang sama persis dengan yang ada di dasbor penulis.
 const LABEL_TAHAP = {
-  diajukan: { teks: 'Dalam Antrean', warna: 'bg-[#F4E3C7] text-[#8A5A1E]' },
+  diajukan: { teks: 'Dalam Antrean', warna: 'bg-naskah-amberlight text-naskah-amber' },
   ditinjau: { teks: 'Sedang Diperiksa', warna: 'bg-biru-light text-biru' },
   siap_terbit: { teks: 'Siap Terbit', warna: 'bg-mustard-light text-mustard' },
 }
@@ -254,14 +254,14 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                       <p className="font-ketik text-[11px] text-naskah-inksoft/70 mb-2">
-                        oleh {n.penulis.namaPena} · {n.tipe === 'artikel' ? 'Artikel' : 'Cerpen'} · {n.kategori}
+                        oleh {n.penulis.namaPena} · {n.tipe === 'artikel' ? 'Artikel' : 'Cerpen'} · {(n.tags || []).join(', ') || 'Tanpa tag'}
                       </p>
                       <p className="font-baca text-sm text-naskah-inksoft mb-3">{n.isi.slice(0, 200)}...</p>
                       <input
                         placeholder="Catatan penolakan (opsional)"
                         value={catatanTolak[n.id] || ''}
                         onChange={(e) => setCatatanTolak((s) => ({ ...s, [n.id]: e.target.value }))}
-                        className="w-full mb-3 px-2 py-1.5 bg-white border border-naskah-aged text-sm font-baca outline-none focus:border-naskah-leather"
+                        className="w-full mb-3 px-2 py-1.5 bg-kertas border border-naskah-aged text-sm font-baca outline-none focus:border-naskah-leather"
                       />
                       <div className="flex flex-wrap gap-2">
                         {n.status === 'diajukan' && (
@@ -325,7 +325,7 @@ export default function AdminDashboard() {
                     <div className="min-w-0">
                       <p className="font-naskah text-lg text-naskah-ink truncate">{p.judul}</p>
                       <p className="font-ketik text-[11px] text-naskah-inksoft/70">
-                        oleh {p.penulis.namaPena} · {p.tipe === 'artikel' ? 'Artikel' : 'Cerpen'} · {p.kategori}
+                        oleh {p.penulis.namaPena} · {p.tipe === 'artikel' ? 'Artikel' : 'Cerpen'} · {(p.tags || []).join(', ') || 'Tanpa tag'}
                       </p>
                     </div>
                     <div className="flex items-center gap-4 shrink-0">

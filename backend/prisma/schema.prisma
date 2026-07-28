@@ -58,6 +58,11 @@ model Post {
   isiHtml       String    @default("")
   status        String    @default("draft")
   catatanAdmin  String    @default("")
+  // DEPRECATED — sisa dari sistem kategori lama (satu kategori per tulisan).
+  // Tidak dihapus dari skema supaya data lama tidak hilang & migrasi ke
+  // sistem tag (lihat field "tags" di bawah, dan scripts/migrateKategoriToTags.js)
+  // bisa ditelusuri ulang kapan saja kalau perlu. Tidak dipakai lagi oleh kode
+  // baru — pakai "tags" untuk kategori/genre sekarang.
   kategori      String    @default("Umum")
   gambarSampul  String?
   // Jumlah kali naskah yang sudah terbit ini dibuka pembaca. Naik tiap
@@ -74,6 +79,12 @@ model Post {
   likes         Like[]
   bookmarks     Bookmark[]
   laporan       Report[]
+
+  // Tag/kategori multi-pilih — pengganti field "kategori" tunggal di atas.
+  // Relasi banyak-ke-banyak implisit lewat tabel Genre (dipakai ulang
+  // sebagai kumpulan tag, bukan model baru, supaya daftar pilihan tag yang
+  // sudah ada di dropdown lama otomatis jadi daftar saran tag juga).
+  tags          Genre[]   @relation("PostTags")
 }
 
 model Comment {
@@ -120,6 +131,11 @@ model Genre {
   id        String   @id @default(cuid())
   nama      String   @unique
   createdAt DateTime @default(now())
+
+  // Sisi lain relasi many-to-many "tags" di atas — satu tag/genre bisa
+  // dipakai di banyak tulisan sekaligus (ini yang bikin sistemnya jadi
+  // "tag multi-pilih", bukan lagi satu kategori tetap per tulisan).
+  posts     Post[]   @relation("PostTags")
 }
 
 // Tulisan yang "disimpan untuk dibaca nanti" oleh pembaca — terpisah dari

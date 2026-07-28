@@ -6,7 +6,8 @@
     "dev": "node --watch server.js",
     "postinstall": "prisma generate",
     "prisma:studio": "prisma studio",
-    "buat-superadmin": "node scripts/createSuperadmin.js"
+    "buat-superadmin": "node scripts/createSuperadmin.js",
+    "migrasi-tag": "node scripts/migrateKategoriToTags.js"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

@@ -49,7 +49,7 @@ function bersihkanRingkasan(html) {
   return teks
 }
 
-export default function CardPost({ id, judul, penulis, penulisUsername, ringkasan, likes: likesAwal = 0, likedAwal = false, viewCount = 0, disimpanAwal = false, kategori, tipe, gambarSampul, tanggalTerbit }) {
+export default function CardPost({ id, judul, penulis, penulisUsername, ringkasan, likes: likesAwal = 0, likedAwal = false, viewCount = 0, disimpanAwal = false, tags = [], tipe, gambarSampul, tanggalTerbit }) {
   const [liked, setLiked] = useState(likedAwal)
   const [likes, setLikes] = useState(likesAwal)
   const [disimpan, setDisimpan] = useState(disimpanAwal)
@@ -116,10 +116,19 @@ export default function CardPost({ id, judul, penulis, penulisUsername, ringkasa
             <span className={`font-mono text-[11px] uppercase tracking-widest ${warna.text}`}>
               {tipe === 'artikel' ? 'Artikel' : 'Cerpen'}
             </span>
-            {kategori && (
+            {tags.length > 0 && (
               <>
                 <span className="text-naskah-inksoft/40">·</span>
-                <span className="font-mono text-[11px] uppercase tracking-widest text-naskah-inksoft/50">{kategori}</span>
+                <span className="flex flex-wrap items-center gap-1">
+                  {tags.map((t) => (
+                    <span
+                      key={t}
+                      className="font-mono text-[10px] uppercase tracking-widest text-naskah-inksoft/60 bg-naskah-aged/40 px-1.5 py-0.5"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </span>
               </>
             )}
             {tanggalTerbit && (

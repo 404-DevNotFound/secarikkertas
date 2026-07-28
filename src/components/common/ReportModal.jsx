@@ -38,7 +38,7 @@ export default function ReportModal({ open, title = 'Laporkan Konten', onSubmit,
         <select
           value={alasan}
           onChange={(e) => setAlasan(e.target.value)}
-          className="w-full mb-4 px-2 py-2 bg-white border border-kertas-line text-sm font-baca outline-none focus:border-stempel"
+          className="w-full mb-4 px-2 py-2 bg-kertas border border-kertas-line text-sm font-baca outline-none focus:border-stempel"
         >
           {ALASAN.map((a) => (
             <option key={a} value={a}>{a}</option>
@@ -53,7 +53,7 @@ export default function ReportModal({ open, title = 'Laporkan Konten', onSubmit,
           onChange={(e) => setDetail(e.target.value)}
           rows={3}
           placeholder="Jelaskan lebih lanjut kalau perlu..."
-          className="w-full mb-6 px-2 py-2 bg-white border border-kertas-line text-sm font-baca outline-none focus:border-stempel resize-none"
+          className="w-full mb-6 px-2 py-2 bg-kertas border border-kertas-line text-sm font-baca outline-none focus:border-stempel resize-none"
         />
 
         <div className="flex justify-end gap-3">

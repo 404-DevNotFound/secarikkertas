@@ -102,10 +102,16 @@ export default function ReadPostPage() {
         <span className="font-mono text-[11px] uppercase tracking-widest text-stempel-dark">
           {post.tipe === 'artikel' ? 'Artikel' : 'Cerpen'}
         </span>
-        {post.kategori && (
+        {post.tags?.length > 0 && (
           <>
             <span className="text-tinta-faint">·</span>
-            <span className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint">{post.kategori}</span>
+            <span className="flex flex-wrap items-center gap-1">
+              {post.tags.map((t) => (
+                <span key={t} className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint bg-kertas-soft px-1.5 py-0.5">
+                  {t}
+                </span>
+              ))}
+            </span>
           </>
         )}
       </div>
@@ -171,7 +177,7 @@ export default function ReadPostPage() {
           // Teknik yang sama dipakai di body & .garis-buku (linear-gradient +
           // background-size eksplisit) — lebih konsisten ketebalannya di
           // berbagai layar/DPI dibanding repeating-linear-gradient multi-stop.
-          backgroundImage: 'linear-gradient(#C9DCEE 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(rgb(var(--color-garisbuku)) 1px, transparent 1px)',
           backgroundSize: '100% 38px',
           backgroundPosition: '0 34px',
         }}

@@ -15,7 +15,7 @@ router.get('/:username', optionalAuth, async (req, res) => {
   const [tulisan, jumlahPengikut, jumlahMengikuti, mengikuti] = await Promise.all([
     prisma.post.findMany({
       where: { penulisId: target.id, status: 'terbit' },
-      include: { likes: true },
+      include: { likes: true, tags: { select: { nama: true } } },
       orderBy: { updatedAt: 'desc' },
     }),
     prisma.follow.count({ where: { followingId: target.id } }),
@@ -39,7 +39,7 @@ router.get('/:username', optionalAuth, async (req, res) => {
       id: p.id,
       judul: p.judul,
       tipe: p.tipe,
-      kategori: p.kategori,
+      tags: p.tags.map((t) => t.nama),
       gambarSampul: p.gambarSampul,
       ringkasan: p.isi.slice(0, 120),
       likes: p.likes.length,

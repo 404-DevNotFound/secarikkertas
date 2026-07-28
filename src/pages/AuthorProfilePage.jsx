@@ -111,7 +111,7 @@ export default function AuthorProfilePage() {
           ringkasan={p.ringkasan}
           likes={p.likes}
           viewCount={p.viewCount}
-          kategori={p.kategori}
+          tags={p.tags}
           tipe={p.tipe}
           gambarSampul={p.gambarSampul}
           tanggalTerbit={p.tanggalTerbit}

@@ -4,15 +4,122 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Variabel warna tema — DUA definisi, terang (:root) dan gelap (.dark pada
+   elemen <html>, lihat src/context/ThemeContext.jsx). Setiap warna ditulis
+   sebagai triplet RGB "R G B" (tanpa koma) supaya Tailwind bisa menyisipkan
+   opacity modifier (mis. bg-kertas/60) lewat rgb(var(...) / <alpha>).
+
+   Nama variabel SENGAJA disamakan persis dengan nama token warna di
+   tailwind.config.js (lihat fungsi warnaVar di sana) — jadi kalau nanti
+   nambah warna baru, cukup nambah satu baris di sini + satu baris di situ.
+
+   INI KUNCI dark mode di proyek ini: karena hampir semua className warna
+   di komponen (bg-kertas, text-naskah-ink, dst) sudah tidak pakai hex
+   langsung, mengganti NILAI variabel ini (bukan className tiap komponen)
+   sudah cukup buat membalik seluruh tema. Cuma segelintir tempat yang
+   masih punya warna hardcode di luar sistem token (CoverPage, Ribbon)
+   yang sengaja TIDAK diikutkan — lihat PANDUAN_FITUR_BARU.md kenapa.
+   ========================================================================== */
+
+:root {
+  /* Palet "buku tulis" (Login/Register, PaperCard, ReadPostPage, dll) */
+  --color-kertas: 250 246 236;
+  --color-kertas-soft: 242 236 222;
+  --color-kertas-line: 221 213 192;
+
+  --color-tinta: 43 42 40;
+  --color-tinta-soft: 92 87 78;
+  --color-tinta-faint: 138 132 119;
+
+  --color-stempel: 63 108 81;
+  --color-stempel-dark: 46 80 57;
+  --color-stempel-light: 234 240 234;
+
+  --color-stabilo: 217 142 63;
+  --color-stabilo-light: 251 235 214;
+
+  --color-biru: 43 91 140;
+  --color-biru-light: 227 237 246;
+
+  --color-merahmuda: 196 67 107;
+  --color-merahmuda-light: 251 231 237;
+
+  --color-mustard: 184 134 11;
+  --color-mustard-light: 251 241 214;
+
+  --color-garisbuku: 201 220 238;
+  --color-margin: 224 133 133;
+
+  /* Palet "buku antik" (HomePage, WriterDashboard, WriteEditorPage, AdminDashboard) */
+  --color-naskah-bg: 244 241 225;
+  --color-naskah-surface: 235 231 213;
+  --color-naskah-aged: 220 215 192;
+  --color-naskah-ink: 28 28 19;
+  --color-naskah-inksoft: 70 71 65;
+  --color-naskah-leather: 139 94 60;
+  --color-naskah-leatherdark: 101 61 30;
+  --color-naskah-moss: 74 93 78;
+  --color-naskah-mosslight: 221 230 220;
+  --color-naskah-amber: 138 90 30;
+  --color-naskah-amberlight: 244 227 199;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Palet "buku tulis" — versi malam */
+  --color-kertas: 46 42 34;
+  --color-kertas-soft: 38 34 25;
+  --color-kertas-line: 74 66 52;
+
+  --color-tinta: 232 225 207;
+  --color-tinta-soft: 185 175 149;
+  --color-tinta-faint: 140 133 112;
+
+  --color-stempel: 79 138 104;
+  --color-stempel-dark: 127 184 148;
+  --color-stempel-light: 31 46 38;
+
+  --color-stabilo: 224 158 92;
+  --color-stabilo-light: 58 46 27;
+
+  --color-biru: 111 160 214;
+  --color-biru-light: 27 42 58;
+
+  --color-merahmuda: 224 122 155;
+  --color-merahmuda-light: 58 31 39;
+
+  --color-mustard: 217 166 61;
+  --color-mustard-light: 51 43 18;
+
+  --color-garisbuku: 58 74 92;
+  --color-margin: 181 97 95;
+
+  /* Palet "buku antik" — versi malam (parchment jadi kulit buku gelap) */
+  --color-naskah-bg: 26 23 18;
+  --color-naskah-surface: 35 31 24;
+  --color-naskah-aged: 74 66 52;
+  --color-naskah-ink: 237 230 211;
+  --color-naskah-inksoft: 191 180 154;
+  --color-naskah-leather: 217 161 92;
+  --color-naskah-leatherdark: 185 133 63;
+  --color-naskah-moss: 143 187 151;
+  --color-naskah-mosslight: 38 51 43;
+  --color-naskah-amber: 217 167 104;
+  --color-naskah-amberlight: 51 42 24;
+}
+
 body {
   font-family: 'Courier Prime', Georgia, monospace;
-  background-color: #FAF6EC;
-  color: #2B2A28;
+  background-color: rgb(var(--color-kertas));
+  color: rgb(var(--color-tinta));
   /* Garis-garis horizontal khas buku tulis, jarak ~32px meniru garis buku sungguhan */
   background-image:
-    linear-gradient(#C9DCEE 1px, transparent 1px);
+    linear-gradient(rgb(var(--color-garisbuku)) 1px, transparent 1px);
   background-size: 100% 32px;
   background-attachment: local;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Garis merah margin ala buku tulis, ditaruh di wrapper utama konten */
@@ -26,7 +133,7 @@ body {
   bottom: 0;
   left: 2.5rem;
   width: 1.5px;
-  background-color: #E08585;
+  background-color: rgb(var(--color-margin));
   opacity: 0.6;
   z-index: 0;
 }
@@ -37,7 +144,7 @@ body {
 }
 
 .coret-bawah {
-  background-image: linear-gradient(#D98E3F, #D98E3F);
+  background-image: linear-gradient(rgb(var(--color-stabilo)), rgb(var(--color-stabilo)));
   background-repeat: no-repeat;
   background-size: 100% 6px;
   background-position: 0 88%;
@@ -54,7 +161,7 @@ body {
   right: -4px;
   bottom: 1px;
   top: 35%;
-  background-color: #FBEBD6;
+  background-color: rgb(var(--color-stabilo-light));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.25s ease-out;
@@ -91,10 +198,10 @@ body {
     transform: translateX(-50%);
     background: linear-gradient(
       to right,
-      rgba(28, 28, 19, 0) 0%,
-      rgba(28, 28, 19, 0.12) 45%,
-      rgba(28, 28, 19, 0.12) 55%,
-      rgba(28, 28, 19, 0) 100%
+      rgb(var(--color-naskah-ink) / 0) 0%,
+      rgb(var(--color-naskah-ink) / 0.12) 45%,
+      rgb(var(--color-naskah-ink) / 0.12) 55%,
+      rgb(var(--color-naskah-ink) / 0) 100%
     );
     pointer-events: none;
     z-index: 1;
@@ -107,7 +214,7 @@ body {
     inset-block: 0;
     right: 0;
     width: 24px;
-    background: linear-gradient(to left, rgba(28, 28, 19, 0.06), transparent);
+    background: linear-gradient(to left, rgb(var(--color-naskah-ink) / 0.06), transparent);
     pointer-events: none;
   }
   .tepi-kanan::after {
@@ -116,7 +223,7 @@ body {
     inset-block: 0;
     left: 0;
     width: 24px;
-    background: linear-gradient(to right, rgba(28, 28, 19, 0.06), transparent);
+    background: linear-gradient(to right, rgb(var(--color-naskah-ink) / 0.06), transparent);
     pointer-events: none;
   }
 }
@@ -124,7 +231,7 @@ body {
 /* Placeholder untuk editor contentEditable (TextEditorContainer) */
 .editor-naskah:empty:before {
   content: attr(data-placeholder);
-  color: rgba(28, 28, 19, 0.4);
+  color: rgb(var(--color-naskah-ink) / 0.4);
   font-style: italic;
   pointer-events: none;
 }
@@ -133,7 +240,7 @@ body {
    kartu putih+bayangan — biar tulisan kelihatan seperti langsung di kertas
    bergaris, bukan kotak kartu digital) */
 .garis-buku {
-  background-image: linear-gradient(rgba(139, 94, 60, 0.16) 1px, transparent 1px);
+  background-image: linear-gradient(rgb(var(--color-naskah-leather) / 0.16) 1px, transparent 1px);
   background-size: 100% 2rem;
 }
 
@@ -156,8 +263,8 @@ body {
 }
 
 ::selection {
-  background-color: #FBEBD6;
-  color: #2B2A28;
+  background-color: rgb(var(--color-stabilo-light));
+  color: rgb(var(--color-tinta));
 }
 
 /* Sembunyikan panah/tombol scrollbar bawaan browser (yang muncul sebagai
@@ -175,7 +282,7 @@ body {
   width: 0;
 }
 .scroll-halus::-webkit-scrollbar-thumb {
-  background-color: rgba(43, 42, 40, 0.25);
+  background-color: rgb(var(--color-tinta) / 0.25);
   border-radius: 4px;
 }
 .scroll-halus::-webkit-scrollbar-track {

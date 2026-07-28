@@ -9,7 +9,7 @@ export default function HomePage() {
   const [posts, setPosts] = useState([])
   const [keyword, setKeyword] = useState('')
   const [tab, setTab] = useState('cerpen')
-  const [kategoriAktif, setKategoriAktif] = useState(null)
+  const [tagsAktif, setTagsAktif] = useState([])
   const [urutan, setUrutan] = useState('terbaru')
   const [halaman, setHalaman] = useState(1)
   const [totalHalaman, setTotalHalaman] = useState(1)
@@ -20,8 +20,8 @@ export default function HomePage() {
     document.title = 'secarikkertas'
   }, [])
 
-  // Daftar kategori di sidebar diambil dari tabel Genre lewat backend,
-  // bukan hardcode lagi — supaya genre baru yang ditambah lewat Prisma
+  // Daftar tag di sidebar diambil dari tabel Genre lewat backend,
+  // bukan hardcode lagi — supaya tag baru yang ditambah lewat Prisma
   // Studio otomatis muncul di sini tanpa perlu ubah kode.
   useEffect(() => {
     api.get('/genres').then((res) => setDaftarKategori(res.data)).catch(() => setDaftarKategori([]))
@@ -29,15 +29,15 @@ export default function HomePage() {
 
   useEffect(() => {
     setMemuat(true)
-    api.get('/posts', { params: { tipe: tab, q: keyword, kategori: kategoriAktif, page: halaman, limit: 6, sort: urutan } })
+    api.get('/posts', { params: { tipe: tab, q: keyword, tags: tagsAktif.join(',') || undefined, page: halaman, limit: 6, sort: urutan } })
       .then((res) => {
         setPosts(res.data.data)
         setTotalHalaman(res.data.totalPages)
       })
       .finally(() => setMemuat(false))
-  }, [tab, keyword, kategoriAktif, halaman, urutan])
+  }, [tab, keyword, tagsAktif, halaman, urutan])
 
-  // Ganti tab/pencarian/kategori → balik ke halaman 1 (dipanggil langsung
+  // Ganti tab/pencarian/tag → balik ke halaman 1 (dipanggil langsung
   // dari handler, bukan lewat useEffect terpisah, biar gak ada setState
   // berantai di dalam effect)
   function pilihTab(t) {
@@ -48,8 +48,10 @@ export default function HomePage() {
     setKeyword(v)
     setHalaman(1)
   }
-  function pilihKategori(k) {
-    setKategoriAktif(k)
+  // Tag bisa dipilih lebih dari satu sekaligus (klik lagi untuk
+  // membatalkan pilihan tag itu) — "Semua Tulisan" mengosongkan seleksi.
+  function toggleTag(k) {
+    setTagsAktif((prev) => (prev.includes(k) ? prev.filter((t) => t !== k) : [...prev, k]))
     setHalaman(1)
   }
 
@@ -81,14 +83,14 @@ export default function HomePage() {
           />
 
           <h3 className="font-ketik text-[11px] uppercase tracking-[0.2em] text-naskah-inksoft/70 mb-3">
-            Kategori
+            Tag
           </h3>
           <ul className="space-y-2 mb-8">
             <li>
               <button
-                onClick={() => pilihKategori(null)}
+                onClick={() => { setTagsAktif([]); setHalaman(1) }}
                 className={`font-naskah text-left transition-colors ${
-                  !kategoriAktif ? 'text-naskah-leather font-semibold' : 'text-naskah-inksoft hover:text-naskah-ink'
+                  tagsAktif.length === 0 ? 'text-naskah-leather font-semibold' : 'text-naskah-inksoft hover:text-naskah-ink'
                 }`}
               >
                 Semua Tulisan
@@ -97,11 +99,13 @@ export default function HomePage() {
             {daftarKategori.map((k) => (
               <li key={k}>
                 <button
-                  onClick={() => pilihKategori(k)}
-                  className={`font-naskah text-left transition-colors ${
-                    kategoriAktif === k ? 'text-naskah-leather font-semibold' : 'text-naskah-inksoft hover:text-naskah-ink'
+                  onClick={() => toggleTag(k)}
+                  aria-pressed={tagsAktif.includes(k)}
+                  className={`font-naskah text-left transition-colors inline-flex items-center gap-1.5 ${
+                    tagsAktif.includes(k) ? 'text-naskah-leather font-semibold' : 'text-naskah-inksoft hover:text-naskah-ink'
                   }`}
                 >
+                  <span className={`w-1.5 h-1.5 rounded-full border border-current shrink-0 ${tagsAktif.includes(k) ? 'bg-naskah-leather' : ''}`} />
                   {k}
                 </button>
               </li>

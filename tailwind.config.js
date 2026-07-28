@@ -1,51 +1,71 @@
 /** @type {import('tailwindcss').Config} */
+
+// Helper kecil: bikin fungsi warna Tailwind yang membaca CSS variable
+// (didefinisikan di src/index.css, sebagai triplet RGB "R G B" tanpa
+// koma — format yang dipakai Tailwind supaya opacity modifier semacam
+// bg-kertas/60 tetap jalan). Ini fondasi dark mode: satu-satunya yang
+// beda antara mode terang & gelap adalah NILAI variable-nya (di :root vs
+// .dark pada index.css), bukan className di komponen — jadi hampir
+// seluruh situs otomatis ikut berganti tema tanpa disentuh satu per satu.
+function warnaVar(namaVar) {
+  return ({ opacityValue }) =>
+    opacityValue !== undefined
+      ? `rgb(var(${namaVar}) / ${opacityValue})`
+      : `rgb(var(${namaVar}))`
+}
+
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
         kertas: {
-          DEFAULT: '#FAF6EC',
-          soft: '#F2ECDE',
-          line: '#DDD5C0',
+          DEFAULT: warnaVar('--color-kertas'),
+          soft: warnaVar('--color-kertas-soft'),
+          line: warnaVar('--color-kertas-line'),
         },
         tinta: {
-          DEFAULT: '#2B2A28',
-          soft: '#5C574E',
-          faint: '#8A8477',
+          DEFAULT: warnaVar('--color-tinta'),
+          soft: warnaVar('--color-tinta-soft'),
+          faint: warnaVar('--color-tinta-faint'),
         },
         // Aksen utama (hijau tinta/stempel) — tetap dipakai untuk aksi utama
         stempel: {
-          DEFAULT: '#3F6C51',
-          dark: '#2E5039',
-          light: '#EAF0EA',
+          DEFAULT: warnaVar('--color-stempel'),
+          dark: warnaVar('--color-stempel-dark'),
+          light: warnaVar('--color-stempel-light'),
         },
         stabilo: {
-          DEFAULT: '#D98E3F',
-          light: '#FBEBD6',
+          DEFAULT: warnaVar('--color-stabilo'),
+          light: warnaVar('--color-stabilo-light'),
         },
         // Warna tambahan ala buku tulis — dipakai bergantian untuk kategori/badge,
         // supaya tidak monoton satu warna terus di semua tempat.
-        biru: { DEFAULT: '#2B5B8C', light: '#E3EDF6' },
-        merahmuda: { DEFAULT: '#C4436B', light: '#FBE7ED' },
-        mustard: { DEFAULT: '#B8860B', light: '#FBF1D6' },
-        garisbuku: '#C9DCEE', // warna garis biru muda khas buku tulis
-        margin: '#E08585', // garis merah margin
+        biru: { DEFAULT: warnaVar('--color-biru'), light: warnaVar('--color-biru-light') },
+        merahmuda: { DEFAULT: warnaVar('--color-merahmuda'), light: warnaVar('--color-merahmuda-light') },
+        mustard: { DEFAULT: warnaVar('--color-mustard'), light: warnaVar('--color-mustard-light') },
+        garisbuku: warnaVar('--color-garisbuku'), // warna garis biru muda khas buku tulis
+        margin: warnaVar('--color-margin'), // garis merah margin
 
         // Palet "buku antik" — dipakai khusus di halaman ber-layout spread
         // dua-halaman (HomePage, WriterDashboard), terpisah dari palet
         // "buku tulis" (kertas/tinta/stempel) supaya halaman lain yang belum
         // diubah tidak ikut kena efek.
         naskah: {
-          bg: '#F4F1E1',      // parchment dasar (permukaan halaman)
-          surface: '#EBE7D5', // permukaan sedikit lebih gelap (meja/latar di luar buku)
-          aged: '#DCD7C0',    // border & garis lipatan
-          ink: '#1C1C13',     // teks utama (iron gall ink)
-          inksoft: '#464741',
-          leather: '#8B5E3C', // aksen utama (kulit buku) — tombol, link penting
-          leatherdark: '#653D1E',
-          moss: '#4A5D4E',    // aksen sekunder (lumut/forest) — badge, status
-          mosslight: '#DDE6DC',
+          bg: warnaVar('--color-naskah-bg'),           // parchment dasar (permukaan halaman)
+          surface: warnaVar('--color-naskah-surface'), // permukaan sedikit lebih gelap (meja/latar di luar buku)
+          aged: warnaVar('--color-naskah-aged'),        // border & garis lipatan
+          ink: warnaVar('--color-naskah-ink'),          // teks utama (iron gall ink)
+          inksoft: warnaVar('--color-naskah-inksoft'),
+          leather: warnaVar('--color-naskah-leather'),         // aksen utama (kulit buku) — tombol, link penting
+          leatherdark: warnaVar('--color-naskah-leatherdark'),
+          moss: warnaVar('--color-naskah-moss'),        // aksen sekunder (lumut/forest) — badge, status
+          mosslight: warnaVar('--color-naskah-mosslight'),
+          // Badge status "Dalam Antrean" — sebelumnya hex hardcode di
+          // WriterDashboard/AdminDashboard, dipindah ke sini biar ikut tema juga.
+          amber: warnaVar('--color-naskah-amber'),
+          amberlight: warnaVar('--color-naskah-amberlight'),
         },
       },
       fontFamily: {

@@ -20,15 +20,29 @@ const uploadGambar = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // gambar maks 5MB
 })
 
+// "tags" di query string boleh satu nama tag atau beberapa dipisah koma
+// (mis. ?tags=Horor,Drama) — tulisan yang punya SALAH SATU dari tag itu
+// akan ikut muncul (OR, bukan AND), supaya makin banyak tag dipilih makin
+// banyak juga hasil yang tampil (seperti filter kategori sebelumnya, cuma
+// sekarang bisa lebih dari satu sekaligus).
+function uraikanTags(nilai) {
+  if (!nilai) return []
+  return String(nilai)
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+}
+
 router.get('/', optionalAuth, async (req, res) => {
-  const { tipe, q, kategori, sort } = req.query
+  const { tipe, q, tags, sort } = req.query
   const halaman = Math.max(1, parseInt(req.query.page, 10) || 1)
   const batas = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 6))
+  const daftarTag = uraikanTags(tags)
 
   const where = {
     status: 'terbit',
     ...(tipe && { tipe }),
-    ...(kategori && { kategori }),
+    ...(daftarTag.length > 0 && { tags: { some: { nama: { in: daftarTag } } } }),
     // Pencarian sekarang mencakup judul, isi tulisan, dan nama pena
     // penulis — bukan cuma judul — supaya lebih gampang ketemu tulisan
     // walau kata kuncinya bukan bagian dari judul.
@@ -53,7 +67,7 @@ router.get('/', optionalAuth, async (req, res) => {
   const [posts, total, idTersimpan] = await Promise.all([
     prisma.post.findMany({
       where,
-      include: { penulis: true, likes: true },
+      include: { penulis: true, likes: true, tags: { select: { nama: true } } },
       orderBy: urutan,
       skip: (halaman - 1) * batas,
       take: batas,
@@ -81,7 +95,7 @@ router.get('/', optionalAuth, async (req, res) => {
     // bukan cuma disimpan lokal di browser/perangkat. Ini yang bikin
     // status "sudah suka" konsisten walau ganti perangkat/browser.
     sudahSuka: req.userId ? p.likes.some((l) => l.userId === req.userId) : false,
-    kategori: p.kategori,
+    tags: p.tags.map((t) => t.nama),
     tipe: p.tipe,
     gambarSampul: p.gambarSampul,
     // Pakai updatedAt sebagai tanggal terbit — field ini otomatis ke-update
@@ -104,7 +118,7 @@ router.get('/', optionalAuth, async (req, res) => {
 router.get('/tersimpan', requireAuth, async (req, res) => {
   const bookmarks = await prisma.bookmark.findMany({
     where: { userId: req.userId },
-    include: { post: { include: { penulis: true, likes: true } } },
+    include: { post: { include: { penulis: true, likes: true, tags: { select: { nama: true } } } } },
     orderBy: { createdAt: 'desc' },
   })
 
@@ -119,7 +133,7 @@ router.get('/tersimpan', requireAuth, async (req, res) => {
       likes: b.post.likes.length,
       viewCount: b.post.viewCount,
       sudahSuka: b.post.likes.some((l) => l.userId === req.userId),
-      kategori: b.post.kategori,
+      tags: b.post.tags.map((t) => t.nama),
       tipe: b.post.tipe,
       gambarSampul: b.post.gambarSampul,
       tanggalTerbit: b.post.updatedAt,
@@ -140,7 +154,7 @@ router.get('/saya', requireAuth, async (req, res) => {
 router.get('/:id', optionalAuth, async (req, res) => {
   const post = await prisma.post.findUnique({
     where: { id: req.params.id },
-    include: { penulis: true, likes: true },
+    include: { penulis: true, likes: true, tags: { select: { nama: true } } },
   })
   if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
 
@@ -162,23 +176,29 @@ router.get('/:id', optionalAuth, async (req, res) => {
     penulis: post.penulis.namaPena,
     penulisUsername: post.penulis.username,
     likes: post.likes.length,
+    tags: post.tags.map((t) => t.nama),
     sudahSuka: req.userId ? post.likes.some((l) => l.userId === req.userId) : false,
     sudahBookmark,
   })
 })
 
-// Beberapa tulisan lain yang sekategori, untuk rekomendasi di akhir
+// Beberapa tulisan lain yang berbagi tag, untuk rekomendasi di akhir tulisan
 // halaman baca. Ditaruh di sini (bukan "/:id/terkait" dengan awalan yang
 // sama) supaya urutan route Express tidak bentrok dengan "/:id" di atas.
 router.get('/:id/terkait', async (req, res) => {
-  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  const post = await prisma.post.findUnique({ where: { id: req.params.id }, include: { tags: true } })
   if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
 
-  const terkait = await prisma.post.findMany({
+  // "Terkait" sekarang berarti berbagi minimal SATU tag yang sama (dulu:
+  // harus kategori tunggalnya persis sama). Tulisan tanpa tag sama sekali
+  // tidak akan punya rekomendasi terkait — itu wajar, tidak ada dasar
+  // kemiripannya.
+  const namaTags = post.tags.map((t) => t.nama)
+  const terkait = namaTags.length === 0 ? [] : await prisma.post.findMany({
     where: {
       status: 'terbit',
       id: { not: post.id },
-      kategori: post.kategori,
+      tags: { some: { nama: { in: namaTags } } },
     },
     include: { penulis: true },
     orderBy: { createdAt: 'desc' },
@@ -197,16 +217,16 @@ router.get('/:id/terkait', async (req, res) => {
 })
 
 router.post('/', requireAuth, async (req, res) => {
-  const { judul, tipe, kategori } = req.body
+  const { judul, tipe } = req.body
   const post = await prisma.post.create({
     data: {
       judul: judul || 'Tanpa judul',
       tipe: tipe || 'cerpen',
-      kategori: kategori || 'Umum',
       penulisId: req.userId,
     },
+    include: { tags: { select: { nama: true } } },
   })
-  res.json(post)
+  res.json({ ...post, tags: post.tags.map((t) => t.nama) })
 })
 
 router.put('/:id/draft', requireAuth, async (req, res) => {
@@ -226,7 +246,7 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
     return res.status(400).json({ message: 'Naskah sedang ditinjau/terbit, tidak bisa diedit' })
   }
 
-  const { judul, isi, kategori } = req.body
+  const { judul, isi, tags } = req.body
   const isiHtml = isi !== undefined ? sanitizeHtml(isi, {
     allowedTags: ['p', 'div', 'b', 'i', 'em', 'strong', 'br', 'blockquote', 'ul', 'ol', 'li', 'a'],
     allowedAttributes: { a: ['href'], p: ['style'], div: ['style'] },
@@ -236,15 +256,35 @@ router.put('/:id/draft', requireAuth, async (req, res) => {
     },
   }) : undefined
 
+  // "tags" datang sebagai array nama (string) dari TagInput di frontend —
+  // dibersihkan dulu (buang spasi berlebih & duplikat, batasi panjang &
+  // jumlah biar tidak disalahgunakan) sebelum dipakai mengganti relasi.
+  // set: [] dulu baru connectOrCreate = cara Prisma mengganti SELURUH isi
+  // relasi many-to-many sekaligus (bukan menambah di atas tag lama).
+  const daftarTag = Array.isArray(tags)
+    ? [...new Set(tags.map((t) => String(t).trim()).filter(Boolean))]
+        .slice(0, 10)
+        .map((t) => t.slice(0, 40))
+    : undefined
+
   const updated = await prisma.post.update({
     where: { id: req.params.id },
     data: {
       ...(judul !== undefined && { judul }),
-      ...(kategori !== undefined && { kategori }),
       ...(isi !== undefined && { isi, isiHtml }),
+      ...(daftarTag !== undefined && {
+        tags: {
+          set: [],
+          connectOrCreate: daftarTag.map((nama) => ({
+            where: { nama },
+            create: { nama },
+          })),
+        },
+      }),
     },
+    include: { tags: { select: { nama: true } } },
   })
-  res.json(updated)
+  res.json({ ...updated, tags: updated.tags.map((t) => t.nama) })
 })
 
 // POST /api/posts/:id/cover - upload/ganti gambar sampul

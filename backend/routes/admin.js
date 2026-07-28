@@ -82,10 +82,10 @@ router.get('/naskah', async (req, res) => {
 
   const posts = await prisma.post.findMany({
     where,
-    include: { penulis: { select: { namaPena: true, username: true } } },
+    include: { penulis: { select: { namaPena: true, username: true } }, tags: { select: { nama: true } } },
     orderBy: { updatedAt: 'desc' },
   })
-  res.json(posts)
+  res.json(posts.map((p) => ({ ...p, tags: p.tags.map((t) => t.nama) })))
 })
 
 // Antrean -> Sedang Diperiksa

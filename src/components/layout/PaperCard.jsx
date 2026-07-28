@@ -13,13 +13,13 @@ export default function PaperCard({ children }) {
       <div
         className="relative bg-kertas shadow-lg -rotate-[0.6deg] margin-buku py-9 sm:py-11"
         style={{
-          backgroundImage: 'linear-gradient(#C9DCEE 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(rgb(var(--color-garisbuku)) 1px, transparent 1px)',
           backgroundSize: '100% 28px',
           backgroundPositionY: '10px',
         }}
       >
         {/* Washi tape nempel di pojok atas, kesan ditempel di buku */}
-        <span className="washi-tape" style={{ backgroundColor: '#D98E3F', opacity: 0.55 }} aria-hidden="true" />
+        <span className="washi-tape" style={{ backgroundColor: 'rgb(var(--color-stabilo))', opacity: 0.55 }} aria-hidden="true" />
 
         <div className="pl-12 pr-6 sm:pl-16 sm:pr-9">{children}</div>
       </div>
