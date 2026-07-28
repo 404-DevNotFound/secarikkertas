@@ -30,7 +30,7 @@ export default function Ribbon() {
     <div
       className="hidden sm:block absolute left-1/2 top-0 z-30 pointer-events-none transition-[height] duration-300 ease-out"
       style={{
-        width: '24px',
+        width: '16px',
         height: `${tinggi}px`,
         background: 'linear-gradient(180deg, #B4405C 0%, #8A2C43 100%)',
         clipPath: 'polygon(0 0, 100% 0, 100% 76%, 50% 100%, 0 76%)',
