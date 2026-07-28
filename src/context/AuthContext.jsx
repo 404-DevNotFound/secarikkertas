@@ -8,11 +8,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    // sessionStorage (bukan localStorage) — sesi login sengaja tidak
+    // "diingat" lintas tab/window. Kalau tabnya ditutup, sessionStorage-nya
+    // ikut hilang, jadi begitu situsnya dibuka lagi harus login ulang.
+    const token = sessionStorage.getItem('token')
     if (token) {
       api.get('/auth/me')
         .then((res) => setUser(res.data.user))
-        .catch(() => localStorage.removeItem('token'))
+        .catch(() => sessionStorage.removeItem('token'))
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
@@ -21,7 +24,7 @@ export function AuthProvider({ children }) {
 
   async function login(username, password, captchaToken) {
     const res = await api.post('/auth/login', { username, password, captchaToken })
-    localStorage.setItem('token', res.data.token)
+    sessionStorage.setItem('token', res.data.token)
     setUser(res.data.user)
   }
 
@@ -37,7 +40,7 @@ export function AuthProvider({ children }) {
   // balikin token — di sinilah user benar-benar login.
   async function verifyEmail(email, kode) {
     const res = await api.post('/auth/verify-email', { email, kode })
-    localStorage.setItem('token', res.data.token)
+    sessionStorage.setItem('token', res.data.token)
     setUser(res.data.user)
   }
 
@@ -61,7 +64,7 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
     setUser(null)
   }
 
