@@ -10,6 +10,7 @@ export default function HomePage() {
   const [keyword, setKeyword] = useState('')
   const [tab, setTab] = useState('cerpen')
   const [kategoriAktif, setKategoriAktif] = useState(null)
+  const [urutan, setUrutan] = useState('terbaru')
   const [halaman, setHalaman] = useState(1)
   const [totalHalaman, setTotalHalaman] = useState(1)
   const [memuat, setMemuat] = useState(true)
@@ -28,13 +29,13 @@ export default function HomePage() {
 
   useEffect(() => {
     setMemuat(true)
-    api.get('/posts', { params: { tipe: tab, q: keyword, kategori: kategoriAktif, page: halaman, limit: 6 } })
+    api.get('/posts', { params: { tipe: tab, q: keyword, kategori: kategoriAktif, page: halaman, limit: 6, sort: urutan } })
       .then((res) => {
         setPosts(res.data.data)
         setTotalHalaman(res.data.totalPages)
       })
       .finally(() => setMemuat(false))
-  }, [tab, keyword, kategoriAktif, halaman])
+  }, [tab, keyword, kategoriAktif, halaman, urutan])
 
   // Ganti tab/pencarian/kategori → balik ke halaman 1 (dipanggil langsung
   // dari handler, bukan lewat useEffect terpisah, biar gak ada setState
@@ -130,23 +131,34 @@ export default function HomePage() {
       }
       kanan={
         <div>
-          <div className="flex gap-1 mb-2 font-ketik text-xs uppercase tracking-wide overflow-x-auto">
-            <button
-              onClick={() => pilihTab('cerpen')}
-              className={`px-4 py-2 whitespace-nowrap transition-colors font-semibold ${
-                tab === 'cerpen' ? 'text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft font-normal'
-              }`}
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <div className="flex gap-1 font-ketik text-xs uppercase tracking-wide overflow-x-auto">
+              <button
+                onClick={() => pilihTab('cerpen')}
+                className={`px-4 py-2 whitespace-nowrap transition-colors font-semibold ${
+                  tab === 'cerpen' ? 'text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft font-normal'
+                }`}
+              >
+                Koleksi Cerpen
+              </button>
+              <button
+                onClick={() => pilihTab('artikel')}
+                className={`px-4 py-2 whitespace-nowrap transition-colors font-semibold ${
+                  tab === 'artikel' ? 'text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft font-normal'
+                }`}
+              >
+                Artikel Edukasi
+              </button>
+            </div>
+
+            <select
+              value={urutan}
+              onChange={(e) => { setUrutan(e.target.value); setHalaman(1) }}
+              className="font-ketik text-xs uppercase tracking-wide bg-transparent border border-naskah-aged px-2 py-1.5 outline-none focus:border-naskah-leather text-naskah-inksoft/70"
             >
-              Koleksi Cerpen
-            </button>
-            <button
-              onClick={() => pilihTab('artikel')}
-              className={`px-4 py-2 whitespace-nowrap transition-colors font-semibold ${
-                tab === 'artikel' ? 'text-naskah-ink' : 'text-naskah-inksoft/60 hover:text-naskah-inksoft font-normal'
-              }`}
-            >
-              Artikel Edukasi
-            </button>
+              <option value="terbaru">Terbaru</option>
+              <option value="terpopuler">Terpopuler</option>
+            </select>
           </div>
 
           <div className="garis-buku">

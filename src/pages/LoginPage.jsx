@@ -57,6 +57,9 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <InputField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
           <PasswordField label="Kata Sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <p className="font-baca text-xs text-tinta-soft -mt-3 mb-5">
+            <Link to="/lupa-password" className="text-stempel-dark underline">Lupa kata sandi?</Link>
+          </p>
           <Captcha onVerify={setCaptchaToken} />
           {error && <p className="font-mono text-xs text-stabilo mb-4">{error}</p>}
           <Button type="submit" disabled={loading} className="w-full sm:w-auto">

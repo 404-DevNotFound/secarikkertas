@@ -16,6 +16,7 @@ const LABEL_TAHAP = {
 const DAFTAR_TAB = [
   { id: 'naskah', label: 'Antrean Naskah' },
   { id: 'terbit', label: 'Naskah Terbit' },
+  { id: 'laporan', label: 'Laporan' },
   { id: 'user', label: 'Kelola Pengguna' },
 ]
 
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
   const [naskah, setNaskah] = useState([])
   const [terbit, setTerbit] = useState([])
   const [users, setUsers] = useState([])
+  const [laporan, setLaporan] = useState([])
   const [catatanTolak, setCatatanTolak] = useState({})
   const [targetHapusUser, setTargetHapusUser] = useState(null)
   const [targetHapusPost, setTargetHapusPost] = useState(null)
@@ -47,6 +49,8 @@ export default function AdminDashboard() {
       api.get('/admin/naskah', { params: { status: 'terbit' } }).then((res) => setTerbit(res.data))
     } else if (tab === 'user') {
       api.get('/admin/users').then((res) => setUsers(res.data))
+    } else if (tab === 'laporan') {
+      api.get('/admin/laporan').then((res) => setLaporan(res.data))
     }
   }, [tab])
 
@@ -148,6 +152,31 @@ export default function AdminDashboard() {
     }
   }
 
+  async function selesaikanLaporan(id) {
+    try {
+      await api.put(`/admin/laporan/${id}/selesai`)
+      setLaporan((prev) => prev.filter((l) => l.id !== id))
+      setToast({ message: 'Laporan ditandai selesai.', type: 'sukses' })
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Gagal memperbarui laporan', type: 'error' })
+    }
+  }
+
+  async function hapusKontenLaporan(l) {
+    try {
+      if (l.post) {
+        await api.delete(`/admin/posts/${l.post.id}`)
+      } else if (l.comment) {
+        await api.delete(`/admin/comments/${l.comment.id}`)
+      }
+      await api.put(`/admin/laporan/${l.id}/selesai`)
+      setLaporan((prev) => prev.filter((x) => x.id !== l.id))
+      setToast({ message: 'Konten dihapus dan laporan ditandai selesai.', type: 'sukses' })
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Gagal menghapus konten', type: 'error' })
+    }
+  }
+
   return (
     <>
       <BookSpread
@@ -168,6 +197,7 @@ export default function AdminDashboard() {
                   ['Terbit', stats.totalTerbit],
                   ['Diajukan', stats.totalDiajukan],
                   ['Komentar', stats.totalComment],
+                  ['Laporan Baru', stats.totalLaporanBaru],
                 ].map(([label, val]) => (
                   <div key={label} className="bg-naskah-surface/50 p-3 border border-naskah-aged">
                     <p className="font-ketik text-[10px] uppercase text-naskah-inksoft/70">{label}</p>
@@ -310,6 +340,54 @@ export default function AdminDashboard() {
                         className="font-ketik text-xs uppercase text-red-600 underline"
                       >
                         Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {tab === 'laporan' && (
+              <div className="space-y-3">
+                <h3 className="font-ketik text-[11px] uppercase tracking-[0.2em] text-naskah-inksoft/70 mb-2">
+                  Laporan Konten
+                </h3>
+                <p className="font-ketik text-sm text-naskah-inksoft/70 italic mb-2">
+                  Laporan dari pembaca atas naskah atau komentar yang dianggap melanggar.
+                </p>
+                {laporan.length === 0 && (
+                  <p className="font-ketik italic text-sm text-naskah-inksoft/70">Tidak ada laporan baru.</p>
+                )}
+                {laporan.map((l) => (
+                  <div key={l.id} className="bg-naskah-surface/60 p-4 border border-naskah-aged/70">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-ketik text-[10px] uppercase px-2 py-1 bg-red-100 text-red-700 shrink-0">
+                        {l.post ? 'Naskah' : 'Komentar'}
+                      </span>
+                      <span className="font-ketik text-[10px] text-naskah-inksoft/60">
+                        {new Date(l.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <p className="font-naskah text-base text-naskah-ink mb-1">
+                      {l.post ? l.post.judul : `"${l.comment?.isi.slice(0, 100)}"`}
+                    </p>
+                    <p className="font-ketik text-[11px] text-naskah-inksoft/70 mb-1">
+                      Alasan: <strong>{l.alasan}</strong>
+                      {l.pelapor && ` · dilaporkan oleh @${l.pelapor.username}`}
+                    </p>
+                    {l.detail && <p className="font-baca text-sm text-naskah-inksoft mb-3 italic">"{l.detail}"</p>}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <button
+                        onClick={() => selesaikanLaporan(l.id)}
+                        className="px-3 py-1.5 bg-naskah-moss text-white text-xs font-ketik uppercase"
+                      >
+                        Tandai Selesai
+                      </button>
+                      <button
+                        onClick={() => hapusKontenLaporan(l)}
+                        className="px-3 py-1.5 bg-red-600 text-white text-xs font-ketik uppercase"
+                      >
+                        Hapus Konten
                       </button>
                     </div>
                   </div>
