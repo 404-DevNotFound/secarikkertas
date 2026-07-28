@@ -46,13 +46,27 @@ export function AuthProvider({ children }) {
     return res.data
   }
 
+  // Lupa kata sandi, langkah 1: minta kode dikirim ke email.
+  async function forgotPassword(email) {
+    const res = await api.post('/auth/forgot-password', { email })
+    return res.data
+  }
+
+  // Lupa kata sandi, langkah 2: kirim kode + kata sandi baru. Tidak
+  // langsung login otomatis — user diarahkan ke halaman Masuk supaya
+  // sadar betul kata sandinya sudah berganti.
+  async function resetPassword(email, kode, password) {
+    const res = await api.post('/auth/reset-password', { email, kode, password })
+    return res.data
+  }
+
   function logout() {
     localStorage.removeItem('token')
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, verifyEmail, resendCode, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyEmail, resendCode, forgotPassword, resetPassword, logout }}>
       {children}
     </AuthContext.Provider>
   )

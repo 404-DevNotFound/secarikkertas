@@ -6,6 +6,7 @@ import pdfParse from 'pdf-parse'
 import { put, del } from '@vercel/blob'
 import prisma from '../data/prisma.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
+import { buatNotifikasi } from '../utils/notify.js'
 
 const router = express.Router()
 
@@ -20,7 +21,7 @@ const uploadGambar = multer({
 })
 
 router.get('/', optionalAuth, async (req, res) => {
-  const { tipe, q, kategori } = req.query
+  const { tipe, q, kategori, sort } = req.query
   const halaman = Math.max(1, parseInt(req.query.page, 10) || 1)
   const batas = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 6))
 
@@ -28,26 +29,54 @@ router.get('/', optionalAuth, async (req, res) => {
     status: 'terbit',
     ...(tipe && { tipe }),
     ...(kategori && { kategori }),
-    ...(q && { judul: { contains: q, mode: 'insensitive' } }),
+    // Pencarian sekarang mencakup judul, isi tulisan, dan nama pena
+    // penulis — bukan cuma judul — supaya lebih gampang ketemu tulisan
+    // walau kata kuncinya bukan bagian dari judul.
+    ...(q && {
+      OR: [
+        { judul: { contains: q, mode: 'insensitive' } },
+        { isi: { contains: q, mode: 'insensitive' } },
+        { penulis: { namaPena: { contains: q, mode: 'insensitive' } } },
+      ],
+    }),
   }
 
-  const [posts, total] = await Promise.all([
+  // "terpopuler" diurutkan dari jumlah suka lalu jumlah dibaca sebagai
+  // pemecah seri — dilakukan di memori (bukan orderBy Prisma) karena
+  // jumlah suka berasal dari relasi (_count), sedangkan halamannya tetap
+  // dipotong di database dulu lewat skip/take berbasis createdAt supaya
+  // tidak perlu tarik SEMUA baris "terbit" ke memori pada situs besar.
+  const urutan = sort === 'terpopuler'
+    ? [{ likes: { _count: 'desc' } }, { viewCount: 'desc' }]
+    : { createdAt: 'desc' }
+
+  const [posts, total, idTersimpan] = await Promise.all([
     prisma.post.findMany({
       where,
       include: { penulis: true, likes: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: urutan,
       skip: (halaman - 1) * batas,
       take: batas,
     }),
     prisma.post.count({ where }),
+    // Set id naskah yang sudah disimpan akun yang login, dipakai supaya
+    // tombol "Simpan" di kartu daftar langsung tampil sesuai status
+    // sebenarnya (bukan cuma reset ke belum-tersimpan tiap kali reload).
+    req.userId
+      ? prisma.bookmark.findMany({ where: { userId: req.userId }, select: { postId: true } })
+      : [],
   ])
+  const setTersimpan = new Set(idTersimpan.map((b) => b.postId))
 
   const hasil = posts.map((p) => ({
     id: p.id,
     judul: p.judul,
     penulis: p.penulis.namaPena,
+    penulisUsername: p.penulis.username,
     ringkasan: p.isi.slice(0, 120),
     likes: p.likes.length,
+    viewCount: p.viewCount,
+    disimpanAwal: setTersimpan.has(p.id),
     // Status suka akun yang sedang login, ditentukan dari data server —
     // bukan cuma disimpan lokal di browser/perangkat. Ini yang bikin
     // status "sudah suka" konsisten walau ganti perangkat/browser.
@@ -69,6 +98,37 @@ router.get('/', optionalAuth, async (req, res) => {
   })
 })
 
+// Tulisan yang disimpan pemakai yang sedang login untuk dibaca nanti.
+// Ditaruh SEBELUM "/:id" (seperti "/saya" di atasnya) supaya Express
+// tidak salah mencocokkan "tersimpan" sebagai parameter :id.
+router.get('/tersimpan', requireAuth, async (req, res) => {
+  const bookmarks = await prisma.bookmark.findMany({
+    where: { userId: req.userId },
+    include: { post: { include: { penulis: true, likes: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const hasil = bookmarks
+    .filter((b) => b.post.status === 'terbit')
+    .map((b) => ({
+      id: b.post.id,
+      judul: b.post.judul,
+      penulis: b.post.penulis.namaPena,
+      penulisUsername: b.post.penulis.username,
+      ringkasan: b.post.isi.slice(0, 120),
+      likes: b.post.likes.length,
+      viewCount: b.post.viewCount,
+      sudahSuka: b.post.likes.some((l) => l.userId === req.userId),
+      kategori: b.post.kategori,
+      tipe: b.post.tipe,
+      gambarSampul: b.post.gambarSampul,
+      tanggalTerbit: b.post.updatedAt,
+      disimpanPada: b.createdAt,
+    }))
+
+  res.json(hasil)
+})
+
 router.get('/saya', requireAuth, async (req, res) => {
   const posts = await prisma.post.findMany({
     where: { penulisId: req.userId },
@@ -84,12 +144,56 @@ router.get('/:id', optionalAuth, async (req, res) => {
   })
   if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
 
+  // Hitungan dibaca cuma dinaikkan untuk naskah yang sudah terbit (bukan
+  // draft/preview admin), dan tidak menunggu (await) supaya tidak
+  // memperlambat respons ke pembaca.
+  if (post.status === 'terbit') {
+    prisma.post.update({ where: { id: post.id }, data: { viewCount: { increment: 1 } } }).catch(() => {})
+  }
+
+  const sudahBookmark = req.userId
+    ? !!(await prisma.bookmark.findUnique({
+        where: { postId_userId: { postId: post.id, userId: req.userId } },
+      }))
+    : false
+
   res.json({
     ...post,
     penulis: post.penulis.namaPena,
+    penulisUsername: post.penulis.username,
     likes: post.likes.length,
     sudahSuka: req.userId ? post.likes.some((l) => l.userId === req.userId) : false,
+    sudahBookmark,
   })
+})
+
+// Beberapa tulisan lain yang sekategori, untuk rekomendasi di akhir
+// halaman baca. Ditaruh di sini (bukan "/:id/terkait" dengan awalan yang
+// sama) supaya urutan route Express tidak bentrok dengan "/:id" di atas.
+router.get('/:id/terkait', async (req, res) => {
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
+
+  const terkait = await prisma.post.findMany({
+    where: {
+      status: 'terbit',
+      id: { not: post.id },
+      kategori: post.kategori,
+    },
+    include: { penulis: true },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  })
+
+  res.json(
+    terkait.map((p) => ({
+      id: p.id,
+      judul: p.judul,
+      penulis: p.penulis.namaPena,
+      gambarSampul: p.gambarSampul,
+      tipe: p.tipe,
+    }))
+  )
 })
 
 router.post('/', requireAuth, async (req, res) => {
@@ -331,11 +435,52 @@ router.post('/:id/like', requireAuth, async (req, res) => {
   res.json({ likes: jumlah })
 })
 
+// Simpan/batal simpan tulisan ke daftar bacaan pribadi ("Tersimpan").
+router.post('/:id/bookmark', requireAuth, async (req, res) => {
+  const { disimpan } = req.body
+  const postId = req.params.id
+
+  if (disimpan) {
+    await prisma.bookmark.upsert({
+      where: { postId_userId: { postId, userId: req.userId } },
+      update: {},
+      create: { postId, userId: req.userId },
+    })
+  } else {
+    await prisma.bookmark.deleteMany({ where: { postId, userId: req.userId } })
+  }
+
+  res.json({ sudahBookmark: !!disimpan })
+})
+
+// Lapor naskah karena melanggar (konten tidak pantas, plagiarisme, dll).
+router.post('/:id/laporkan', requireAuth, async (req, res) => {
+  const { alasan, detail } = req.body
+  if (!alasan || !alasan.trim()) {
+    return res.status(400).json({ message: 'Pilih alasan laporan terlebih dahulu' })
+  }
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
+
+  await prisma.report.create({
+    data: {
+      alasan: alasan.trim(),
+      detail: (detail || '').trim(),
+      postId: post.id,
+      pelaporId: req.userId,
+    },
+  })
+  res.json({ message: 'Terima kasih, laporanmu sudah dikirim ke admin untuk ditinjau.' })
+})
+
+// Komentar dikembalikan flat (dengan parentId) — frontend yang menyusun
+// jadi pohon (komentar utama + balasannya), supaya query di sini tetap
+// sederhana (satu findMany, tanpa recursive query).
 router.get('/:id/comments', async (req, res) => {
   const comments = await prisma.comment.findMany({
     where: { postId: req.params.id },
     include: { user: true },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: 'asc' },
   })
 
   const hasil = comments.map((c) => ({
@@ -344,14 +489,24 @@ router.get('/:id/comments', async (req, res) => {
     nama: c.user ? c.user.namaPena : (c.namaTamu || 'Anonim'),
     waktu: c.createdAt,
     anonim: !c.user,
+    parentId: c.parentId,
   }))
   res.json(hasil)
 })
 
 router.post('/:id/comments', optionalAuth, async (req, res) => {
-  const { isi, namaTamu } = req.body
+  const { isi, namaTamu, parentId } = req.body
   if (!isi || !isi.trim()) {
     return res.status(400).json({ message: 'Komentar tidak boleh kosong' })
+  }
+
+  // Kalau ini balasan, pastikan komentar induknya benar-benar ada dan
+  // milik naskah yang sama — cegah balasan "nyasar" ke naskah lain.
+  if (parentId) {
+    const induk = await prisma.comment.findUnique({ where: { id: parentId } })
+    if (!induk || induk.postId !== req.params.id) {
+      return res.status(400).json({ message: 'Komentar induk tidak valid' })
+    }
   }
 
   const isiBersih = sanitizeHtml(isi.trim(), { allowedTags: [], allowedAttributes: {} })
@@ -361,10 +516,23 @@ router.post('/:id/comments', optionalAuth, async (req, res) => {
       isi: isiBersih,
       postId: req.params.id,
       userId: req.userId || null,
+      parentId: parentId || null,
       namaTamu: req.userId ? null : (sanitizeHtml((namaTamu || '').trim(), { allowedTags: [], allowedAttributes: {} }) || 'Anonim'),
     },
     include: { user: true },
   })
+
+  // Beri tahu penulis naskah kalau ada komentar baru masuk (kecuali kalau
+  // yang berkomentar adalah penulisnya sendiri).
+  const post = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (post && post.penulisId !== req.userId) {
+    await buatNotifikasi({
+      userId: post.penulisId,
+      tipe: 'komentar',
+      pesan: `${comment.user ? comment.user.namaPena : (comment.namaTamu || 'Anonim')} mengomentari "${post.judul}"`,
+      link: `/post/${post.id}`,
+    })
+  }
 
   res.json({
     id: comment.id,
@@ -372,7 +540,28 @@ router.post('/:id/comments', optionalAuth, async (req, res) => {
     nama: comment.user ? comment.user.namaPena : (comment.namaTamu || 'Anonim'),
     waktu: comment.createdAt,
     anonim: !comment.user,
+    parentId: comment.parentId,
   })
+})
+
+// Lapor komentar karena melanggar.
+router.post('/comments/:id/laporkan', requireAuth, async (req, res) => {
+  const { alasan, detail } = req.body
+  if (!alasan || !alasan.trim()) {
+    return res.status(400).json({ message: 'Pilih alasan laporan terlebih dahulu' })
+  }
+  const comment = await prisma.comment.findUnique({ where: { id: req.params.id } })
+  if (!comment) return res.status(404).json({ message: 'Komentar tidak ditemukan' })
+
+  await prisma.report.create({
+    data: {
+      alasan: alasan.trim(),
+      detail: (detail || '').trim(),
+      commentId: comment.id,
+      pelaporId: req.userId,
+    },
+  })
+  res.json({ message: 'Terima kasih, laporanmu sudah dikirim ke admin untuk ditinjau.' })
 })
 
 export default router

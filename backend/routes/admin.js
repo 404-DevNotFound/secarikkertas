@@ -1,12 +1,13 @@
 import express from 'express'
 import prisma from '../data/prisma.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
+import { buatNotifikasi, beriTahuPengikut } from '../utils/notify.js'
 
 const router = express.Router()
 router.use(requireAuth, requireAdmin(prisma))
 
 router.get('/stats', async (req, res) => {
-  const [totalUser, totalPost, totalTerbit, totalDiajukan, totalComment] = await Promise.all([
+  const [totalUser, totalPost, totalTerbit, totalDiajukan, totalComment, totalLaporanBaru] = await Promise.all([
     prisma.user.count(),
     prisma.post.count(),
     prisma.post.count({ where: { status: 'terbit' } }),
@@ -15,8 +16,9 @@ router.get('/stats', async (req, res) => {
     // angkanya mencerminkan semua naskah yang masih diproses.
     prisma.post.count({ where: { status: { in: ['diajukan', 'ditinjau', 'siap_terbit'] } } }),
     prisma.comment.count(),
+    prisma.report.count({ where: { status: 'baru' } }),
   ])
-  res.json({ totalUser, totalPost, totalTerbit, totalDiajukan, totalComment })
+  res.json({ totalUser, totalPost, totalTerbit, totalDiajukan, totalComment, totalLaporanBaru })
 })
 
 router.get('/users', async (req, res) => {
@@ -118,7 +120,24 @@ router.put('/naskah/:id/setujui', async (req, res) => {
   const post = await prisma.post.update({
     where: { id: req.params.id },
     data: { status: 'terbit', catatanAdmin: '' },
+    include: { penulis: true },
   })
+
+  await buatNotifikasi({
+    userId: post.penulisId,
+    tipe: 'naskah_disetujui',
+    pesan: `Naskahmu "${post.judul}" telah disetujui dan terbit.`,
+    link: `/post/${post.id}`,
+  })
+  // Fire-and-forget — jangan tunggu semua notifikasi pengikut selesai
+  // sebelum membalas admin, supaya panel admin tetap terasa responsif.
+  beriTahuPengikut({
+    penulisId: post.penulisId,
+    penulisNama: post.penulis.namaPena,
+    postId: post.id,
+    judul: post.judul,
+  })
+
   res.json(post)
 })
 
@@ -128,6 +147,14 @@ router.put('/naskah/:id/tolak', async (req, res) => {
     where: { id: req.params.id },
     data: { status: 'ditolak', catatanAdmin: catatan || 'Tidak sesuai pedoman komunitas' },
   })
+
+  await buatNotifikasi({
+    userId: post.penulisId,
+    tipe: 'naskah_ditolak',
+    pesan: `Naskahmu "${post.judul}" ditolak. Cek catatan admin di dasbor.`,
+    link: `/dashboard`,
+  })
+
   res.json(post)
 })
 
@@ -139,6 +166,34 @@ router.delete('/posts/:id', async (req, res) => {
 router.delete('/comments/:id', async (req, res) => {
   await prisma.comment.delete({ where: { id: req.params.id } })
   res.json({ message: 'Komentar dihapus' })
+})
+
+// Daftar laporan konten (naskah/komentar) dari pembaca. Default cuma
+// tampilkan yang "baru" (belum ditindak), atau semua kalau ?status=semua.
+router.get('/laporan', async (req, res) => {
+  const { status } = req.query
+  const where = status === 'semua' ? {} : { status: 'baru' }
+
+  const laporan = await prisma.report.findMany({
+    where,
+    include: {
+      post: { select: { id: true, judul: true } },
+      comment: { select: { id: true, isi: true, postId: true } },
+      pelapor: { select: { username: true, namaPena: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  res.json(laporan)
+})
+
+// Tandai laporan sudah ditindaklanjuti (tanpa harus menghapus kontennya —
+// admin bisa saja memutuskan laporannya tidak valid).
+router.put('/laporan/:id/selesai', async (req, res) => {
+  const laporan = await prisma.report.update({
+    where: { id: req.params.id },
+    data: { status: 'selesai' },
+  })
+  res.json(laporan)
 })
 
 export default router

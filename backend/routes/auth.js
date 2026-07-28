@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken'
 import rateLimit from 'express-rate-limit'
 import prisma from '../data/prisma.js'
 import { requireAuth, SECRET } from '../middleware/auth.js'
-import { kirimKodeVerifikasi } from '../utils/email.js'
+import { kirimKodeVerifikasi, kirimKodeResetPassword } from '../utils/email.js'
 
 const router = express.Router()
 
@@ -222,6 +222,69 @@ router.post('/login', authLimiter, async (req, res) => {
   const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: '7d' })
   const { password: _, ...userTanpaPassword } = user
   res.json({ token, user: userTanpaPassword })
+})
+
+// Langkah 1 lupa kata sandi: kirim kode 6 digit ke email akun. Selalu balas
+// pesan sukses yang sama walau emailnya tidak terdaftar — supaya endpoint
+// ini tidak bisa dipakai buat mengecek email mana saja yang punya akun
+// (enumeration attack).
+router.post('/forgot-password', resendLimiter, async (req, res) => {
+  const { email } = req.body
+  const emailBersih = (email || '').trim().toLowerCase()
+  const PESAN_UMUM = 'Kalau email tersebut terdaftar, kode reset kata sandi sudah dikirim.'
+
+  const user = await prisma.user.findUnique({ where: { email: emailBersih } })
+  if (!user) {
+    return res.json({ message: PESAN_UMUM })
+  }
+
+  const kode = buatKodeVerifikasi()
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      kodeResetPassword: kode,
+      kodeResetPasswordExpiry: new Date(Date.now() + MASA_BERLAKU_KODE_MS),
+    },
+  })
+
+  try {
+    await kirimKodeResetPassword(emailBersih, kode)
+  } catch (err) {
+    console.error('Gagal kirim email reset kata sandi:', err)
+    // Tetap balas pesan umum yang sama — jangan bocorkan ke pemanggil
+    // apakah pengiriman berhasil, cukup dicatat di log server.
+  }
+
+  res.json({ message: PESAN_UMUM })
+})
+
+// Langkah 2 lupa kata sandi: user memasukkan kode + kata sandi baru.
+router.post('/reset-password', authLimiter, async (req, res) => {
+  const { email, kode, password } = req.body
+  const emailBersih = (email || '').trim().toLowerCase()
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({ message: 'Kata sandi minimal 6 karakter' })
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: emailBersih } })
+  if (!user || !user.kodeResetPassword || !user.kodeResetPasswordExpiry) {
+    return res.status(400).json({ message: 'Kode tidak valid, minta kode reset baru' })
+  }
+  if (user.kodeResetPasswordExpiry < new Date()) {
+    return res.status(400).json({ message: 'Kode sudah kedaluwarsa, minta kode reset baru' })
+  }
+  if (String(kode || '').trim() !== user.kodeResetPassword) {
+    return res.status(400).json({ message: 'Kode salah' })
+  }
+
+  const hash = await bcrypt.hash(password, 10)
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hash, kodeResetPassword: null, kodeResetPasswordExpiry: null },
+  })
+
+  res.json({ message: 'Kata sandi berhasil diganti, silakan masuk dengan kata sandi baru' })
 })
 
 router.get('/me', requireAuth, async (req, res) => {

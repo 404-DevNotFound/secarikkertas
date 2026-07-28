@@ -44,3 +44,35 @@ export async function kirimKodeVerifikasi(email, kode) {
     throw new Error(`Gagal mengirim email verifikasi: ${detail}`)
   }
 }
+
+// Kirim kode 6 digit untuk reset kata sandi. Pola sama persis dengan
+// kirimKodeVerifikasi di atas, cuma beda salinan teksnya.
+export async function kirimKodeResetPassword(email, kode) {
+  const sentFrom = new Sender(EMAIL_FROM_ADDRESS, EMAIL_FROM_NAME)
+  const recipients = [new Recipient(email)]
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
+      <h2 style="margin-bottom: 8px;">Reset kata sandi SecarikKertas</h2>
+      <p>Masukkan kode berikut untuk membuat kata sandi baru. Kode berlaku selama <strong>5 menit</strong>.</p>
+      <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; margin: 24px 0; background: #f5f5f4; padding: 16px; border-radius: 8px;">
+        ${kode}
+      </p>
+      <p style="color: #666; font-size: 13px;">Kalau kamu tidak meminta reset kata sandi, abaikan saja email ini — akunmu tetap aman.</p>
+    </div>
+  `
+
+  const emailParams = new EmailParams()
+    .setFrom(sentFrom)
+    .setTo(recipients)
+    .setSubject(`${kode} — Reset kata sandi SecarikKertas`)
+    .setHtml(html)
+    .setText(`Kode reset kata sandi SecarikKertas kamu: ${kode} (berlaku 5 menit)`)
+
+  try {
+    await mailerSend.email.send(emailParams)
+  } catch (err) {
+    const detail = err?.body?.message || err?.message || err
+    throw new Error(`Gagal mengirim email reset kata sandi: ${detail}`)
+  }
+}

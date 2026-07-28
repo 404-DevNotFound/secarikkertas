@@ -8,6 +8,8 @@ import postRoutes from './routes/posts.js'
 import userRoutes from './routes/users.js'
 import adminRoutes from './routes/admin.js'
 import genreRoutes from './routes/genres.js'
+import notificationRoutes from './routes/notifications.js'
+import prisma from './data/prisma.js'
 
 const app = express()
 
@@ -49,8 +51,55 @@ app.use('/api/posts', postRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/genres', genreRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 app.get('/', (req, res) => res.send('secarikkertas API jalan ✅'))
+
+// Feed RSS publik — 30 naskah terbit terbaru, supaya pembaca setia bisa
+// berlangganan lewat pembaca RSS (Feedly, dst) tanpa perlu buka situsnya.
+// Diletakkan di /rss.xml (bukan di bawah /api) supaya URL-nya pendek &
+// gampang diingat/dibagikan, sesuai konvensi feed pada umumnya.
+function escapeXml(teks) {
+  return String(teks || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
+app.get('/rss.xml', async (req, res) => {
+  const situsUrl = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')[0].trim()
+  const posts = await prisma.post.findMany({
+    where: { status: 'terbit' },
+    include: { penulis: true },
+    orderBy: { updatedAt: 'desc' },
+    take: 30,
+  })
+
+  const items = posts.map((p) => `
+    <item>
+      <title>${escapeXml(p.judul)}</title>
+      <link>${situsUrl}/post/${p.id}</link>
+      <guid>${situsUrl}/post/${p.id}</guid>
+      <pubDate>${new Date(p.updatedAt).toUTCString()}</pubDate>
+      <author>${escapeXml(p.penulis.namaPena)}</author>
+      <description>${escapeXml(p.isi.slice(0, 300))}</description>
+    </item>`).join('')
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>secarikkertas</title>
+    <link>${situsUrl}</link>
+    <description>Cerpen dan artikel terbaru dari secarikkertas</description>
+    <language>id-ID</language>${items}
+  </channel>
+</rss>`
+
+  res.set('Content-Type', 'application/rss+xml; charset=utf-8')
+  res.send(xml)
+})
 
 // Tangkap error tak terduga apapun supaya user tetap dapat pesan rapi,
 // bukan halaman error mentah. Detail teknisnya tetap masuk log server (console.error)

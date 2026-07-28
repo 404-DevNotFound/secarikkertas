@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import NotificationBell from '../feature/NotificationBell'
 
 const NAMA_BULAN = [
   'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
@@ -72,7 +73,9 @@ export default function Navbar() {
           {user && (
             <>
               <Link to="/dashboard" className={tautan('/dashboard')}>Dasbor</Link>
+              <Link to="/tersimpan" className={tautan('/tersimpan')}>Tersimpan</Link>
               <Link to="/profile" className={tautan('/profile')}>Profil</Link>
+              <NotificationBell />
             </>
           )}
 
@@ -124,6 +127,7 @@ export default function Navbar() {
           {user ? (
             <>
               <Link to="/dashboard" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Dasbor</Link>
+              <Link to="/tersimpan" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Tersimpan</Link>
               <Link to="/profile" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Profil</Link>
               <button onClick={() => { logout(); setMenuBuka(false) }} className="text-left text-naskah-inksoft">Keluar</button>
             </>

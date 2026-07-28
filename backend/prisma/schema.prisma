@@ -32,9 +32,22 @@ model User {
   kodeVerifikasi        String?
   kodeVerifikasiExpiry  DateTime?
 
+  // --- Lupa kata sandi ---
+  // Sama pola-nya dengan verifikasi email: kode 6 digit dikirim ke email,
+  // berlaku singkat, dan wajib cocok sebelum kata sandi baru bisa disimpan.
+  kodeResetPassword       String?
+  kodeResetPasswordExpiry DateTime?
+
   posts     Post[]
   comments  Comment[]
   likes     Like[]
+  bookmarks Bookmark[]
+  notifikasi Notification[]
+  laporanDibuat Report[]
+
+  // Mengikuti / diikuti — self-relation lewat tabel Follow di bawah.
+  mengikuti   Follow[] @relation("Pengikut")
+  pengikut    Follow[] @relation("Diikuti")
 }
 
 model Post {
@@ -47,6 +60,10 @@ model Post {
   catatanAdmin  String    @default("")
   kategori      String    @default("Umum")
   gambarSampul  String?
+  // Jumlah kali naskah yang sudah terbit ini dibuka pembaca. Naik tiap
+  // GET /api/posts/:id dipanggil (lihat routes/posts.js) — dihitung kasar
+  // per-request, bukan per-pembaca-unik, cukup untuk kebutuhan situs ini.
+  viewCount     Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -55,6 +72,8 @@ model Post {
 
   comments      Comment[]
   likes         Like[]
+  bookmarks     Bookmark[]
+  laporan       Report[]
 }
 
 model Comment {
@@ -68,6 +87,16 @@ model Comment {
 
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String?
+
+  // Balasan komentar (threaded) — komentar tanpa parentId adalah komentar
+  // utama, yang punya parentId adalah balasan terhadap komentar itu.
+  // Cuma satu tingkat kedalaman yang dipakai di UI (balasan tidak dibalas
+  // lagi), tapi skemanya sendiri mendukung kedalaman berapa pun.
+  parent    Comment? @relation("BalasanKomentar", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  String?
+  balasan   Comment[] @relation("BalasanKomentar")
+
+  laporan   Report[]
 }
 
 model Like {
@@ -91,4 +120,72 @@ model Genre {
   id        String   @id @default(cuid())
   nama      String   @unique
   createdAt DateTime @default(now())
+}
+
+// Tulisan yang "disimpan untuk dibaca nanti" oleh pembaca — terpisah dari
+// Like (like = apresiasi publik & ditampilkan ke semua orang, bookmark =
+// daftar bacaan pribadi, cuma pemiliknya yang lihat).
+model Bookmark {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@unique([postId, userId])
+}
+
+// Mengikuti penulis lain. followerId = yang menekan tombol "Ikuti",
+// followingId = penulis yang diikuti. Dipakai untuk menampilkan jumlah
+// pengikut di profil publik, dan untuk mengirim notifikasi saat penulis
+// yang diikuti menerbitkan naskah baru.
+model Follow {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  follower    User   @relation("Pengikut", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId  String
+
+  following   User   @relation("Diikuti", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId String
+
+  @@unique([followerId, followingId])
+}
+
+// Notifikasi dalam-aplikasi (bukan email) — dicek lewat bel di navbar.
+// "tipe" dipakai frontend untuk pilih ikon/gaya, "link" untuk arah klik.
+model Notification {
+  id        String   @id @default(cuid())
+  tipe      String   // 'komentar' | 'naskah_disetujui' | 'naskah_ditolak' | 'penulis_baru_terbit'
+  pesan     String
+  link      String?
+  dibaca    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+}
+
+// Laporan konten tidak pantas — dari pembaca ke admin. Tepat satu dari
+// postId/commentId terisi (bukan pakai constraint DB supaya tetap
+// sederhana, divalidasi di kode — lihat POST /:id/laporkan dan
+// POST /comments/:id/laporkan di routes/posts.js).
+model Report {
+  id        String   @id @default(cuid())
+  alasan    String
+  detail    String   @default("")
+  status    String   @default("baru") // 'baru' | 'selesai'
+  createdAt DateTime @default(now())
+
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String?
+
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String?
+
+  pelapor   User?    @relation(fields: [pelaporId], references: [id], onDelete: SetNull)
+  pelaporId String?
 }

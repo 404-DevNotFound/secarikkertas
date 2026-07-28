@@ -49,9 +49,10 @@ function bersihkanRingkasan(html) {
   return teks
 }
 
-export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAwal = 0, likedAwal = false, kategori, tipe, gambarSampul, tanggalTerbit }) {
+export default function CardPost({ id, judul, penulis, penulisUsername, ringkasan, likes: likesAwal = 0, likedAwal = false, viewCount = 0, disimpanAwal = false, kategori, tipe, gambarSampul, tanggalTerbit }) {
   const [liked, setLiked] = useState(likedAwal)
   const [likes, setLikes] = useState(likesAwal)
+  const [disimpan, setDisimpan] = useState(disimpanAwal)
   const [toast, setToast] = useState(null)
   const { user } = useAuth()
   const warna = warnaDariId(id)
@@ -74,6 +75,21 @@ export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAw
       setLiked(!nilaiBaru)
       setLikes((n) => (nilaiBaru ? Math.max(0, n - 1) : n + 1))
       setToast({ message: err.response?.data?.message || 'Gagal menyimpan suka, coba lagi.', type: 'error' })
+    }
+  }
+
+  async function handleBookmark() {
+    if (!user) {
+      setToast({ message: 'Masuk dulu untuk menyimpan tulisan ini.', type: 'error' })
+      return
+    }
+    const nilaiBaru = !disimpan
+    setDisimpan(nilaiBaru)
+    try {
+      await api.post(`/posts/${id}/bookmark`, { disimpan: nilaiBaru })
+    } catch (err) {
+      setDisimpan(!nilaiBaru)
+      setToast({ message: err.response?.data?.message || 'Gagal menyimpan tulisan, coba lagi.', type: 'error' })
     }
   }
 
@@ -120,7 +136,13 @@ export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAw
             </h2>
           </Link>
           <p className="font-mono text-[11px] uppercase tracking-wide text-naskah-inksoft/50 mt-1 mb-2">
-            oleh {penulis}
+            oleh{' '}
+            {penulisUsername ? (
+              <Link to={`/penulis/${penulisUsername}`} className="hover:text-naskah-leather hover:underline">
+                {penulis}
+              </Link>
+            ) : penulis}
+            {viewCount > 0 && <span className="ml-2 text-naskah-inksoft/40">· {viewCount} dibaca</span>}
           </p>
           {ringkasan && (
             <p className="font-baca text-sm sm:text-[15px] leading-8 text-naskah-inksoft mb-2">{bersihkanRingkasan(ringkasan)}</p>
@@ -134,14 +156,25 @@ export default function CardPost({ id, judul, penulis, ringkasan, likes: likesAw
               Selengkapnya <span aria-hidden>→</span>
             </Link>
 
-            <button
-              onClick={handleLike}
-              className={`font-mono text-xs px-4 py-1.5 border transition-colors whitespace-nowrap shrink-0 ${
-                liked ? 'bg-naskah-mosslight border-naskah-moss text-naskah-moss' : 'border-naskah-aged text-naskah-inksoft/60 hover:border-naskah-moss hover:text-naskah-moss'
-              }`}
-            >
-              {liked ? '♥ DISUKAI' : '♡ SUKA'} · {likes}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleBookmark}
+                aria-label={disimpan ? 'Batal simpan' : 'Simpan untuk dibaca nanti'}
+                className={`font-mono text-xs px-3 py-1.5 border transition-colors whitespace-nowrap ${
+                  disimpan ? 'bg-mustard-light border-mustard text-mustard' : 'border-naskah-aged text-naskah-inksoft/60 hover:border-mustard hover:text-mustard'
+                }`}
+              >
+                {disimpan ? '🔖 Tersimpan' : '🔖 Simpan'}
+              </button>
+              <button
+                onClick={handleLike}
+                className={`font-mono text-xs px-4 py-1.5 border transition-colors whitespace-nowrap ${
+                  liked ? 'bg-naskah-mosslight border-naskah-moss text-naskah-moss' : 'border-naskah-aged text-naskah-inksoft/60 hover:border-naskah-moss hover:text-naskah-moss'
+                }`}
+              >
+                {liked ? '♥ DISUKAI' : '♡ SUKA'} · {likes}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -17,6 +17,9 @@ import UserProfilePage from './pages/UserProfilePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminDashboard from './pages/AdminDashboard'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import AuthorProfilePage from './pages/AuthorProfilePage'
+import SavedPostsPage from './pages/SavedPostsPage'
 
 // Cover hanya tampil kalau: (a) user membuka path root "/", dan
 // (b) belum pernah menekan "Buka Buku" di sesi browser ini.
@@ -70,10 +73,13 @@ function App() {
                 <Route path="/post/:id" element={<ReadPostPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/lupa-password" element={<ForgotPasswordPage />} />
+                <Route path="/penulis/:username" element={<AuthorProfilePage />} />
 
                 <Route path="/dashboard" element={<ProtectedRoute><WriterDashboard /></ProtectedRoute>} />
                 <Route path="/dashboard/tulis/:id" element={<ProtectedRoute><WriteEditorPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                <Route path="/tersimpan" element={<ProtectedRoute><SavedPostsPage /></ProtectedRoute>} />
 
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               </Routes>
