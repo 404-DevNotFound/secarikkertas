@@ -68,8 +68,14 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // Dipakai UserProfilePage setelah berhasil PUT /users/me — supaya nama
+  // pena baru langsung kepakai di Navbar dkk tanpa perlu reload halaman.
+  function updateUser(data) {
+    setUser((prev) => (prev ? { ...prev, ...data } : prev))
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, verifyEmail, resendCode, forgotPassword, resetPassword, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyEmail, resendCode, forgotPassword, resetPassword, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

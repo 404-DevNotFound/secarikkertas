@@ -117,9 +117,19 @@ router.put('/naskah/:id/siap-terbit', async (req, res) => {
 })
 
 router.put('/naskah/:id/setujui', async (req, res) => {
+  const sebelum = await prisma.post.findUnique({ where: { id: req.params.id } })
+  if (!sebelum) return res.status(404).json({ message: 'Naskah tidak ditemukan' })
+
   const post = await prisma.post.update({
     where: { id: req.params.id },
-    data: { status: 'terbit', catatanAdmin: '' },
+    data: {
+      status: 'terbit',
+      catatanAdmin: '',
+      // Cuma diisi PERTAMA KALI naskah ini terbit, supaya tanggal terbit
+      // yang tampil ke pembaca adalah kapan naskah pertama disetujui —
+      // bukan ikut berubah tiap kali baris ini disentuh lagi nanti.
+      ...(!sebelum.publishedAt && { publishedAt: new Date() }),
+    },
     include: { penulis: true },
   })
 

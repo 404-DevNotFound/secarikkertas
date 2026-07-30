@@ -98,10 +98,11 @@ router.get('/', optionalAuth, async (req, res) => {
     tags: p.tags.map((t) => t.nama),
     tipe: p.tipe,
     gambarSampul: p.gambarSampul,
-    // Pakai updatedAt sebagai tanggal terbit — field ini otomatis ke-update
-    // Prisma tiap kali status berubah jadi "terbit", dan naskah yang sudah
-    // terbit tidak bisa diedit lagi, jadi nilainya stabil sebagai "kapan terbit"
-    tanggalTerbit: p.updatedAt,
+    // publishedAt diisi sekali saat naskah pertama kali disetujui/terbit
+    // (lihat PUT /:id/ajukan & admin.js PUT /naskah/:id/setujui) dan tidak
+    // berubah lagi sesudahnya — beda dari updatedAt yang ikut maju tiap
+    // kali baris ini disentuh apa pun (mis. viewCount bertambah).
+    tanggalTerbit: p.publishedAt,
   }))
 
   res.json({
@@ -136,7 +137,7 @@ router.get('/tersimpan', requireAuth, async (req, res) => {
       tags: b.post.tags.map((t) => t.nama),
       tipe: b.post.tipe,
       gambarSampul: b.post.gambarSampul,
-      tanggalTerbit: b.post.updatedAt,
+      tanggalTerbit: b.post.publishedAt,
       disimpanPada: b.createdAt,
     }))
 
@@ -395,7 +396,14 @@ router.put('/:id/ajukan', requireAuth, async (req, res) => {
 
   const updated = await prisma.post.update({
     where: { id: req.params.id },
-    data: { status: statusBaru, catatanAdmin: '' },
+    data: {
+      status: statusBaru,
+      catatanAdmin: '',
+      // Cuma diisi PERTAMA KALI naskah ini terbit — kalau sebelumnya sudah
+      // pernah punya publishedAt (mis. "Terbitkan Ulang"), tanggal terbit
+      // aslinya dipertahankan, tidak ikut maju ke hari ini.
+      ...(statusBaru === 'terbit' && !post.publishedAt && { publishedAt: new Date() }),
+    },
   })
   res.json(updated)
 })

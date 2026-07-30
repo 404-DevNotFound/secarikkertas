@@ -16,7 +16,10 @@ router.get('/:username', optionalAuth, async (req, res) => {
     prisma.post.findMany({
       where: { penulisId: target.id, status: 'terbit' },
       include: { likes: true, tags: { select: { nama: true } } },
-      orderBy: { updatedAt: 'desc' },
+      // publishedAt dulunya updatedAt — diganti karena updatedAt ikut maju
+      // tiap kali naskah dibaca (viewCount bertambah), jadi urutan "Tulisan
+      // Terbit" di profil bisa acak-acakan tiap ada pembaca baru.
+      orderBy: { publishedAt: 'desc' },
     }),
     prisma.follow.count({ where: { followingId: target.id } }),
     prisma.follow.count({ where: { followerId: target.id } }),
@@ -44,7 +47,7 @@ router.get('/:username', optionalAuth, async (req, res) => {
       ringkasan: p.isi.slice(0, 120),
       likes: p.likes.length,
       viewCount: p.viewCount,
-      tanggalTerbit: p.updatedAt,
+      tanggalTerbit: p.publishedAt,
     })),
   })
 })

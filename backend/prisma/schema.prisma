@@ -71,6 +71,14 @@ model Post {
   viewCount     Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  // Kapan naskah PERTAMA KALI berstatus "terbit" — diisi sekali saat itu
+  // terjadi (lihat routes/posts.js & routes/admin.js) dan tidak berubah
+  // lagi sesudahnya. Dulu tanggal terbit dibaca dari "updatedAt", tapi itu
+  // salah: updatedAt ikut berubah tiap kali ada aktivitas lain di baris ini
+  // (mis. viewCount bertambah tiap dibaca), jadi tanggal terbit yang
+  // tampil ke pembaca keliru ikut maju ke hari ini. Null untuk naskah yang
+  // belum pernah terbit (draft/diajukan/ditinjau/siap_terbit/ditolak).
+  publishedAt   DateTime?
 
   penulis       User      @relation(fields: [penulisId], references: [id], onDelete: Cascade)
   penulisId     String
