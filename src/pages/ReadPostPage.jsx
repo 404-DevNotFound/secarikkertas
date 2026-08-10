@@ -3,9 +3,11 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import CommentSection from '../components/feature/CommentSection'
+import ReactionBar from '../components/feature/ReactionBar'
 import Toast from '../components/common/Toast'
 import MusicToggle from '../components/feature/MusicToggle'
 import ReportModal from '../components/common/ReportModal'
+import ShareMenu from '../components/common/ShareMenu'
 
 // Estimasi ~200 kata/menit — angka umum untuk kecepatan baca orang dewasa
 // dalam bahasa Indonesia. Dihitung dari isi HTML dengan tag dibuang dulu,
@@ -47,24 +49,6 @@ export default function ReadPostPage() {
     } catch (err) {
       setPost((p) => ({ ...p, sudahBookmark: !nilaiBaru }))
       setToast({ message: err.response?.data?.message || 'Gagal menyimpan, coba lagi.', type: 'error' })
-    }
-  }
-
-  async function bagikan() {
-    const url = window.location.href
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: post.judul, url })
-      } catch {
-        // Pengguna membatalkan share sheet — tidak perlu ditangani sebagai error
-      }
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(url)
-      setToast({ message: 'Tautan disalin ke clipboard.', type: 'success' })
-    } catch {
-      setToast({ message: 'Gagal menyalin tautan.', type: 'error' })
     }
   }
 
@@ -135,20 +119,22 @@ export default function ReadPostPage() {
       <div className="flex items-center gap-2 mb-6">
         <button
           onClick={toggleBookmark}
+          aria-pressed={post.sudahBookmark}
+          aria-label={post.sudahBookmark ? 'Batalkan simpan tulisan' : 'Simpan tulisan untuk dibaca nanti'}
           className={`font-mono text-xs px-3 py-1.5 border transition-colors ${
             post.sudahBookmark ? 'bg-mustard-light border-mustard text-mustard' : 'border-kertas-line text-tinta-faint hover:border-mustard hover:text-mustard'
           }`}
         >
           {post.sudahBookmark ? '🔖 Tersimpan' : '🔖 Simpan'}
         </button>
-        <button
-          onClick={bagikan}
-          className="font-mono text-xs px-3 py-1.5 border border-kertas-line text-tinta-faint hover:border-biru hover:text-biru transition-colors"
-        >
-          ↗ Bagikan
-        </button>
+        <ShareMenu
+          judul={post.judul}
+          onSalinBerhasil={() => setToast({ message: 'Tautan disalin ke clipboard.', type: 'success' })}
+          onSalinGagal={() => setToast({ message: 'Gagal menyalin tautan.', type: 'error' })}
+        />
         <button
           onClick={() => setLaporModalBuka(true)}
+          aria-label="Laporkan tulisan ini"
           className="font-mono text-xs px-3 py-1.5 border border-kertas-line text-tinta-faint hover:border-red-500 hover:text-red-500 transition-colors"
         >
           ⚑ Laporkan
@@ -162,6 +148,8 @@ export default function ReadPostPage() {
           className="w-full max-h-[420px] object-cover mb-8 shadow-md select-none"
           draggable={false}
           onContextMenu={(e) => e.preventDefault()}
+          loading="eager"
+          decoding="async"
         />
       )}
 
@@ -201,6 +189,19 @@ export default function ReadPostPage() {
         />
       </div>
 
+      <div className="mt-10 pt-8 border-t border-kertas-line">
+        <h3 className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint mb-3">
+          Apa reaksimu?
+        </h3>
+        <ReactionBar
+          postId={id}
+          reaksiCountAwal={post.reaksiCount}
+          reaksiSayaAwal={post.reaksiSaya}
+          butuhLogin={!user}
+          onButuhLogin={() => setToast({ message: 'Masuk dulu untuk memberi reaksi.', type: 'error' })}
+        />
+      </div>
+
       {terkait.length > 0 && (
         <div className="mt-12 pt-8 border-t border-kertas-line">
           <h3 className="font-mono text-[11px] uppercase tracking-widest text-tinta-faint mb-4">
@@ -210,7 +211,7 @@ export default function ReadPostPage() {
             {terkait.map((t) => (
               <Link key={t.id} to={`/post/${t.id}`} className="block group">
                 {t.gambarSampul && (
-                  <img src={t.gambarSampul} alt="" className="w-full h-24 object-cover mb-2 group-hover:opacity-80 transition-opacity" />
+                  <img src={t.gambarSampul} alt="" loading="lazy" decoding="async" className="w-full h-24 object-cover mb-2 group-hover:opacity-80 transition-opacity" />
                 )}
                 <p className="font-judul text-sm font-semibold text-tinta group-hover:text-stempel-dark transition-colors leading-snug">
                   {t.judul}

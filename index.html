@@ -36,6 +36,13 @@
           var tersimpan = localStorage.getItem('sk_tema')
           var gelap = tersimpan === 'gelap' || (!tersimpan && window.matchMedia('(prefers-color-scheme: dark)').matches)
           if (gelap) document.documentElement.classList.add('dark')
+
+          // Sama polanya dengan tema gelap di atas, untuk "Mode Nyaman"
+          // (kurangi animasi & kursor kustom) — lihat
+          // src/context/AccessibilityContext.jsx untuk detailnya.
+          var modeNyaman = localStorage.getItem('sk_mode_nyaman')
+          var nyaman = modeNyaman === '1' || (modeNyaman === null && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+          if (nyaman) document.documentElement.classList.add('mode-nyaman')
         } catch (e) {
           // localStorage bisa saja diblokir (mode privat ketat dll) — kalau
           // gagal, biarkan saja default ke tema terang, bukan error fatal.

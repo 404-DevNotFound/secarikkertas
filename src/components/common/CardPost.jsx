@@ -104,6 +104,8 @@ export default function CardPost({ id, judul, penulis, penulisUsername, ringkasa
             <img
               src={gambarSampul}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="w-20 h-20 sm:w-28 sm:h-28 object-cover shadow-sm"
               style={{ transform: `rotate(${sudut * -1.4}deg)` }}
             />
@@ -177,6 +179,8 @@ export default function CardPost({ id, judul, penulis, penulisUsername, ringkasa
               </button>
               <button
                 onClick={handleLike}
+                aria-pressed={liked}
+                aria-label={liked ? `Batalkan suka, saat ini ${likes} orang menyukai` : `Sukai tulisan ini, saat ini ${likes} orang menyukai`}
                 className={`font-mono text-xs px-4 py-1.5 border transition-colors whitespace-nowrap ${
                   liked ? 'bg-naskah-mosslight border-naskah-moss text-naskah-moss' : 'border-naskah-aged text-naskah-inksoft/60 hover:border-naskah-moss hover:text-naskah-moss'
                 }`}

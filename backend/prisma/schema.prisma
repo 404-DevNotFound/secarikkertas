@@ -48,6 +48,13 @@ model User {
   // Mengikuti / diikuti — self-relation lewat tabel Follow di bawah.
   mengikuti   Follow[] @relation("Pengikut")
   pengikut    Follow[] @relation("Diikuti")
+
+  koleksi     Collection[]
+  reaksi      Reaction[]
+  // Jejak aksi yang PERNAH dilakukan user ini selagi jadi admin (lihat
+  // AdminLog di bawah). Tetap ada walau role-nya diturunkan lagi nanti —
+  // adminId di-SET NULL cuma kalau akunnya benar-benar dihapus.
+  logAdmin    AdminLog[]
 }
 
 model Post {
@@ -87,6 +94,9 @@ model Post {
   likes         Like[]
   bookmarks     Bookmark[]
   laporan       Report[]
+  // Reaksi ekspresif (terharu/terinspirasi/dst) di halaman baca — terpisah
+  // dari "likes" di atas, lihat catatan lengkap di model Reaction.
+  reaksi        Reaction[]
 
   // Tag/kategori multi-pilih — pengganti field "kategori" tunggal di atas.
   // Relasi banyak-ke-banyak implisit lewat tabel Genre (dipakai ulang
@@ -119,7 +129,12 @@ model Comment {
 }
 
 model Like {
-  id     String @id @default(cuid())
+  id        String   @id @default(cuid())
+  // Ditambah belakangan (khusus dipakai grafik aktivitas harian di dasbor
+  // statistik penulis) — baris LAMA yang sudah ada saat migrasi dijalankan
+  // otomatis terisi "sekarang" oleh Postgres, jadi tanggalnya tidak 100%
+  // akurat untuk suka-suka lawas, tapi cukup untuk tren ke depannya.
+  createdAt DateTime @default(now())
 
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId String
@@ -151,6 +166,49 @@ model Genre {
 // daftar bacaan pribadi, cuma pemiliknya yang lihat).
 model Bookmark {
   id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  // Opsional — kalau diisi, bookmark ini masuk ke salah satu "rak" koleksi
+  // pribadi pemiliknya (lihat model Collection). Null = belum dikelompokkan
+  // ("Tanpa Koleksi" di UI). Koleksi dihapus -> bookmark TIDAK ikut hilang,
+  // cuma balik jadi tanpa-koleksi (onDelete: SetNull).
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  collectionId String?
+
+  @@unique([postId, userId])
+}
+
+// Koleksi/rak bacaan pribadi untuk mengelompokkan bookmark (mis. "Bacaan
+// Santai", "Riset Naskah") — supaya rak "Tersimpan" tidak jadi satu
+// tumpukan panjang tak terorganisir kalau isinya sudah banyak.
+model Collection {
+  id        String     @id @default(cuid())
+  nama      String
+  createdAt DateTime   @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  bookmarks Bookmark[]
+
+  // Satu pengguna tidak boleh punya dua koleksi dengan nama sama persis.
+  @@unique([userId, nama])
+}
+
+// Reaksi ekspresif di halaman baca (terharu, terinspirasi, dst) — sengaja
+// dibuat sebagai model TERPISAH dari Like ("suka" di kartu tulisan),
+// supaya perilaku "suka" yang sudah ada di CardPost dkk tidak ikut
+// berubah. Satu pengguna cuma boleh pilih SATU jenis reaksi per naskah;
+// ganti pilihan berarti upsert baris yang sama, bukan menambah baris baru.
+model Reaction {
+  id        String   @id @default(cuid())
+  tipe      String   // 'terharu' | 'terinspirasi' | 'lucu' | 'mikir'
   createdAt DateTime @default(now())
 
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -212,4 +270,19 @@ model Report {
 
   pelapor   User?    @relation(fields: [pelaporId], references: [id], onDelete: SetNull)
   pelaporId String?
+}
+
+// Jejak audit aksi admin (moderasi naskah, kelola pengguna, dsb) — supaya
+// ada riwayat "siapa melakukan apa, kapan" yang bisa ditelusuri kalau ada
+// sengketa atau kesalahan proses. Append-only: baris di sini tidak pernah
+// diedit/dihapus oleh aksi lain manapun.
+model AdminLog {
+  id        String   @id @default(cuid())
+  aksi      String   // mis. 'naskah_disetujui', 'naskah_ditolak', 'user_diblokir', dst.
+  target    String   // deskripsi singkat targetnya (judul naskah / username)
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+
+  admin     User?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  adminId   String?
 }

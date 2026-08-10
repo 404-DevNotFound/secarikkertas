@@ -18,7 +18,24 @@ const DAFTAR_TAB = [
   { id: 'terbit', label: 'Naskah Terbit' },
   { id: 'laporan', label: 'Laporan' },
   { id: 'user', label: 'Kelola Pengguna' },
+  { id: 'log', label: 'Log Aktivitas' },
 ]
+
+// Label ramah-baca untuk kode "aksi" mentah yang dikirim backend
+// (lihat backend/utils/log.js & titik-titik pemanggilnya di routes/admin.js).
+const LABEL_AKSI = {
+  naskah_mulai_diperiksa: 'Mulai memeriksa naskah',
+  naskah_siap_terbit: 'Menandai naskah siap terbit',
+  naskah_disetujui: 'Menyetujui & menerbitkan naskah',
+  naskah_ditolak: 'Menolak naskah',
+  naskah_dihapus: 'Menghapus naskah',
+  komentar_dihapus: 'Menghapus komentar',
+  laporan_selesai: 'Menyelesaikan laporan',
+  user_diblokir: 'Memblokir akun',
+  user_dibuka_blokir: 'Membuka blokir akun',
+  ubah_role: 'Mengubah role akun',
+  user_dihapus: 'Menghapus akun',
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -28,6 +45,7 @@ export default function AdminDashboard() {
   const [terbit, setTerbit] = useState([])
   const [users, setUsers] = useState([])
   const [laporan, setLaporan] = useState([])
+  const [log, setLog] = useState([])
   const [catatanTolak, setCatatanTolak] = useState({})
   const [targetHapusUser, setTargetHapusUser] = useState(null)
   const [targetHapusPost, setTargetHapusPost] = useState(null)
@@ -51,6 +69,8 @@ export default function AdminDashboard() {
       api.get('/admin/users').then((res) => setUsers(res.data))
     } else if (tab === 'laporan') {
       api.get('/admin/laporan').then((res) => setLaporan(res.data))
+    } else if (tab === 'log') {
+      api.get('/admin/log').then((res) => setLog(res.data))
     }
   }, [tab])
 
@@ -256,6 +276,9 @@ export default function AdminDashboard() {
                       <p className="font-ketik text-[11px] text-naskah-inksoft/70 mb-2">
                         oleh {n.penulis.namaPena} · {n.tipe === 'artikel' ? 'Artikel' : 'Cerpen'} · {(n.tags || []).join(', ') || 'Tanpa tag'}
                       </p>
+                      {n.catatanAdmin && n.status === 'diajukan' && (
+                        <p className="font-ketik text-xs text-red-600 bg-red-50 px-2 py-1.5 mb-2">{n.catatanAdmin}</p>
+                      )}
                       <p className="font-baca text-sm text-naskah-inksoft mb-3">{n.isi.slice(0, 200)}...</p>
                       <input
                         placeholder="Catatan penolakan (opsional)"
@@ -431,6 +454,47 @@ export default function AdminDashboard() {
                                 Hapus Akun
                               </button>
                             )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {tab === 'log' && (
+              <div>
+                <h3 className="font-ketik text-[11px] uppercase tracking-[0.2em] text-naskah-inksoft/70 mb-2">
+                  Log Aktivitas Admin
+                </h3>
+                <p className="font-ketik text-sm text-naskah-inksoft/70 italic mb-3">
+                  Riwayat 100 aksi moderasi terakhir — siapa melakukan apa, kapan.
+                </p>
+                {log.length === 0 && (
+                  <p className="font-ketik italic text-sm text-naskah-inksoft/70">Belum ada aktivitas tercatat.</p>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm font-baca min-w-[560px]">
+                    <thead>
+                      <tr className="text-left font-ketik text-[10px] uppercase text-naskah-inksoft/70 border-b border-naskah-aged">
+                        <th className="py-2 pr-2">Waktu</th>
+                        <th className="py-2 pr-2">Admin</th>
+                        <th className="py-2 pr-2">Aksi</th>
+                        <th className="py-2">Target</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {log.map((l) => (
+                        <tr key={l.id} className="border-b border-naskah-aged/60 align-top">
+                          <td className="py-2 pr-2 whitespace-nowrap font-ketik text-xs text-naskah-inksoft/70">
+                            {new Date(l.createdAt).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="py-2 pr-2">{l.admin}</td>
+                          <td className="py-2 pr-2">{LABEL_AKSI[l.aksi] || l.aksi}</td>
+                          <td className="py-2">
+                            <span className="truncate block max-w-xs">{l.target}</span>
+                            {l.detail && <span className="block text-xs text-naskah-inksoft/60 italic">{l.detail}</span>}
                           </td>
                         </tr>
                       ))}

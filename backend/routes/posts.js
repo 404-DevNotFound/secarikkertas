@@ -3,12 +3,34 @@ import multer from 'multer'
 import sanitizeHtml from 'sanitize-html'
 import mammoth from 'mammoth'
 import pdfParse from 'pdf-parse'
+import rateLimit from 'express-rate-limit'
 import { put, del } from '@vercel/blob'
 import prisma from '../data/prisma.js'
 import { requireAuth, optionalAuth } from '../middleware/auth.js'
 import { buatNotifikasi } from '../utils/notify.js'
+import { periksaKonten } from '../utils/moderasiKonten.js'
 
 const router = express.Router()
+
+// Komentar TIDAK wajib login (bisa tamu), jadi paling rawan dipakai buat
+// spam massal — dibatasi lebih ketat daripada limiter global di server.js.
+const commentLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 menit
+  max: 20,
+  message: { message: 'Terlalu sering berkomentar, coba lagi beberapa menit lagi' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+// Laporan wajib login, tapi tetap dibatasi supaya tidak dipakai buat
+// membanjiri antrean moderasi admin dengan laporan asal-asalan.
+const reportLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { message: 'Terlalu banyak laporan dikirim, coba lagi beberapa menit lagi' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -139,6 +161,7 @@ router.get('/tersimpan', requireAuth, async (req, res) => {
       gambarSampul: b.post.gambarSampul,
       tanggalTerbit: b.post.publishedAt,
       disimpanPada: b.createdAt,
+      collectionId: b.collectionId,
     }))
 
   res.json(hasil)
@@ -152,10 +175,123 @@ router.get('/saya', requireAuth, async (req, res) => {
   res.json(posts)
 })
 
+// Ringkasan statistik untuk dasbor penulis: total per naskah + aktivitas
+// harian (suka & komentar) 14 hari terakhir. Sengaja dibangun dari data
+// yang sudah ada (Like.createdAt, Comment.createdAt) — tidak perlu tabel
+// pencatat "kunjungan" baru cuma untuk grafik ini.
+router.get('/saya/statistik', requireAuth, async (req, res) => {
+  const posts = await prisma.post.findMany({
+    where: { penulisId: req.userId },
+    include: {
+      _count: { select: { likes: true, comments: true, bookmarks: true, reaksi: true } },
+    },
+    orderBy: { updatedAt: 'desc' },
+  })
+  const postIds = posts.map((p) => p.id)
+
+  const H14_MS = 14 * 24 * 60 * 60 * 1000
+  const sejak = new Date(Date.now() - H14_MS)
+
+  const [likesBaru, komentarBaru] = postIds.length === 0 ? [[], []] : await Promise.all([
+    prisma.like.findMany({ where: { postId: { in: postIds }, createdAt: { gte: sejak } }, select: { createdAt: true } }),
+    prisma.comment.findMany({ where: { postId: { in: postIds }, createdAt: { gte: sejak } }, select: { createdAt: true } }),
+  ])
+
+  // Bentuk 14 slot tanggal (YYYY-MM-DD) berurutan, isi 0 dulu supaya
+  // grafik tetap punya sumbu-x lengkap walau harinya sepi aktivitas.
+  const slot = {}
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+    slot[d.toISOString().slice(0, 10)] = { tanggal: d.toISOString().slice(0, 10), suka: 0, komentar: 0 }
+  }
+  likesBaru.forEach((l) => {
+    const key = new Date(l.createdAt).toISOString().slice(0, 10)
+    if (slot[key]) slot[key].suka += 1
+  })
+  komentarBaru.forEach((c) => {
+    const key = new Date(c.createdAt).toISOString().slice(0, 10)
+    if (slot[key]) slot[key].komentar += 1
+  })
+
+  const perNaskah = posts.map((p) => ({
+    id: p.id,
+    judul: p.judul,
+    tipe: p.tipe,
+    status: p.status,
+    viewCount: p.viewCount,
+    jumlahSuka: p._count.likes,
+    jumlahKomentar: p._count.comments,
+    jumlahTersimpan: p._count.bookmarks,
+    jumlahReaksi: p._count.reaksi,
+    publishedAt: p.publishedAt,
+  }))
+
+  const ringkasan = perNaskah.reduce(
+    (acc, p) => ({
+      totalTulisan: acc.totalTulisan + 1,
+      totalTerbit: acc.totalTerbit + (p.status === 'terbit' ? 1 : 0),
+      totalDibaca: acc.totalDibaca + p.viewCount,
+      totalSuka: acc.totalSuka + p.jumlahSuka,
+      totalKomentar: acc.totalKomentar + p.jumlahKomentar,
+      totalTersimpan: acc.totalTersimpan + p.jumlahTersimpan,
+    }),
+    { totalTulisan: 0, totalTerbit: 0, totalDibaca: 0, totalSuka: 0, totalKomentar: 0, totalTersimpan: 0 },
+  )
+
+  res.json({
+    ringkasan,
+    perNaskah: perNaskah.sort((a, b) => b.viewCount - a.viewCount),
+    aktivitasHarian: Object.values(slot),
+  })
+})
+
+// Rekomendasi personal sederhana: cari tag dari tulisan yang pernah
+// disukai/disimpan pengguna, lalu sarankan tulisan LAIN terbit yang
+// berbagi tag itu (belum pernah disukai/disimpan olehnya). Kalau
+// pengguna belum pernah berinteraksi sama sekali, kembalikan array kosong
+// — biarkan bagian "Terbaru"/"Terpopuler" di beranda yang mengisi.
+router.get('/rekomendasi', requireAuth, async (req, res) => {
+  const [disukai, disimpan] = await Promise.all([
+    prisma.like.findMany({ where: { userId: req.userId }, select: { postId: true } }),
+    prisma.bookmark.findMany({ where: { userId: req.userId }, select: { postId: true } }),
+  ])
+  const idDiketahui = [...new Set([...disukai.map((l) => l.postId), ...disimpan.map((b) => b.postId)])]
+  if (idDiketahui.length === 0) return res.json([])
+
+  const postDiketahui = await prisma.post.findMany({
+    where: { id: { in: idDiketahui } },
+    include: { tags: { select: { nama: true } } },
+  })
+  const namaTags = [...new Set(postDiketahui.flatMap((p) => p.tags.map((t) => t.nama)))]
+  if (namaTags.length === 0) return res.json([])
+
+  const rekomendasi = await prisma.post.findMany({
+    where: {
+      status: 'terbit',
+      id: { notIn: idDiketahui },
+      tags: { some: { nama: { in: namaTags } } },
+    },
+    include: { penulis: true, likes: true, tags: { select: { nama: true } } },
+    orderBy: { viewCount: 'desc' },
+    take: 5,
+  })
+
+  res.json(rekomendasi.map((p) => ({
+    id: p.id,
+    judul: p.judul,
+    penulis: p.penulis.namaPena,
+    penulisUsername: p.penulis.username,
+    gambarSampul: p.gambarSampul,
+    tipe: p.tipe,
+    tags: p.tags.map((t) => t.nama),
+    likes: p.likes.length,
+  })))
+})
+
 router.get('/:id', optionalAuth, async (req, res) => {
   const post = await prisma.post.findUnique({
     where: { id: req.params.id },
-    include: { penulis: true, likes: true, tags: { select: { nama: true } } },
+    include: { penulis: true, likes: true, tags: { select: { nama: true } }, reaksi: true },
   })
   if (!post) return res.status(404).json({ message: 'Tidak ditemukan' })
 
@@ -172,15 +308,58 @@ router.get('/:id', optionalAuth, async (req, res) => {
       }))
     : false
 
+  // Rekap reaksi per jenis, mis. { terharu: 3, terinspirasi: 1 } — jenis
+  // yang jumlahnya nol tidak ikut dikirim, biar payload-nya ringkas.
+  const reaksiCount = {}
+  post.reaksi.forEach((r) => { reaksiCount[r.tipe] = (reaksiCount[r.tipe] || 0) + 1 })
+  const reaksiSaya = req.userId ? (post.reaksi.find((r) => r.userId === req.userId)?.tipe || null) : null
+
   res.json({
     ...post,
+    reaksi: undefined,
     penulis: post.penulis.namaPena,
     penulisUsername: post.penulis.username,
     likes: post.likes.length,
     tags: post.tags.map((t) => t.nama),
     sudahSuka: req.userId ? post.likes.some((l) => l.userId === req.userId) : false,
     sudahBookmark,
+    reaksiCount,
+    reaksiSaya,
   })
+})
+
+// Pilih/ganti/batalkan reaksi ekspresif di halaman baca (terpisah dari
+// "suka" di kartu tulisan — lihat catatan di model Reaction). Kirim tipe
+// yang SAMA dengan reaksi aktif saat ini untuk membatalkannya.
+const TIPE_REAKSI_VALID = ['terharu', 'terinspirasi', 'lucu', 'mikir']
+router.post('/:id/reaksi', requireAuth, async (req, res) => {
+  const { tipe } = req.body
+  const postId = req.params.id
+
+  const aktif = await prisma.reaction.findUnique({
+    where: { postId_userId: { postId, userId: req.userId } },
+  })
+
+  if (!tipe || (aktif && aktif.tipe === tipe)) {
+    // Tidak kirim tipe, atau kirim tipe yang sama dengan reaksi aktif -> batalkan
+    if (aktif) await prisma.reaction.delete({ where: { id: aktif.id } })
+  } else {
+    if (!TIPE_REAKSI_VALID.includes(tipe)) {
+      return res.status(400).json({ message: 'Jenis reaksi tidak valid' })
+    }
+    await prisma.reaction.upsert({
+      where: { postId_userId: { postId, userId: req.userId } },
+      update: { tipe },
+      create: { postId, userId: req.userId, tipe },
+    })
+  }
+
+  const semua = await prisma.reaction.findMany({ where: { postId } })
+  const reaksiCount = {}
+  semua.forEach((r) => { reaksiCount[r.tipe] = (reaksiCount[r.tipe] || 0) + 1 })
+  const reaksiSaya = semua.find((r) => r.userId === req.userId)?.tipe || null
+
+  res.json({ reaksiCount, reaksiSaya })
 })
 
 // Beberapa tulisan lain yang berbagi tag, untuk rekomendasi di akhir tulisan
@@ -394,11 +573,19 @@ router.put('/:id/ajukan', requireAuth, async (req, res) => {
   // yang sudah terbit sebelumnya). Penulis biasa: masuk antrean tinjauan.
   const statusBaru = isAdmin ? 'terbit' : 'diajukan'
 
+  // Bukan penghalang (naskah tetap masuk antrean seperti biasa) — cuma
+  // tanda peringatan dini buat admin, ditaruh di catatanAdmin supaya
+  // langsung kelihatan di panel Antrean Naskah saat ditinjau manual.
+  const cekModerasi = periksaKonten(post.judul + ' ' + post.isi)
+  const catatanAwal = cekModerasi.bermasalah
+    ? `⚑ Terdeteksi otomatis: ${cekModerasi.alasan.toLowerCase()} — mohon tinjau lebih cermat.`
+    : ''
+
   const updated = await prisma.post.update({
     where: { id: req.params.id },
     data: {
       status: statusBaru,
-      catatanAdmin: '',
+      catatanAdmin: statusBaru === 'terbit' ? '' : catatanAwal,
       // Cuma diisi PERTAMA KALI naskah ini terbit — kalau sebelumnya sudah
       // pernah punya publishedAt (mis. "Terbitkan Ulang"), tanggal terbit
       // aslinya dipertahankan, tidak ikut maju ke hari ini.
@@ -502,7 +689,7 @@ router.post('/:id/bookmark', requireAuth, async (req, res) => {
 })
 
 // Lapor naskah karena melanggar (konten tidak pantas, plagiarisme, dll).
-router.post('/:id/laporkan', requireAuth, async (req, res) => {
+router.post('/:id/laporkan', requireAuth, reportLimiter, async (req, res) => {
   const { alasan, detail } = req.body
   if (!alasan || !alasan.trim()) {
     return res.status(400).json({ message: 'Pilih alasan laporan terlebih dahulu' })
@@ -542,10 +729,18 @@ router.get('/:id/comments', async (req, res) => {
   res.json(hasil)
 })
 
-router.post('/:id/comments', optionalAuth, async (req, res) => {
+router.post('/:id/comments', commentLimiter, optionalAuth, async (req, res) => {
   const { isi, namaTamu, parentId } = req.body
   if (!isi || !isi.trim()) {
     return res.status(400).json({ message: 'Komentar tidak boleh kosong' })
+  }
+
+  // Komentar tayang LANGSUNG tanpa antrean tinjauan admin (beda dari
+  // naskah) — jadi lapisan filter kata kasar/spam di sini yang menahan
+  // kasus paling jelas sebelum sempat terlihat pengguna lain.
+  const cekModerasi = periksaKonten(isi)
+  if (cekModerasi.bermasalah) {
+    return res.status(400).json({ message: `Komentar tidak bisa dikirim: ${cekModerasi.alasan.toLowerCase()}` })
   }
 
   // Kalau ini balasan, pastikan komentar induknya benar-benar ada dan
@@ -593,7 +788,7 @@ router.post('/:id/comments', optionalAuth, async (req, res) => {
 })
 
 // Lapor komentar karena melanggar.
-router.post('/comments/:id/laporkan', requireAuth, async (req, res) => {
+router.post('/comments/:id/laporkan', requireAuth, reportLimiter, async (req, res) => {
   const { alasan, detail } = req.body
   if (!alasan || !alasan.trim()) {
     return res.status(400).json({ message: 'Pilih alasan laporan terlebih dahulu' })

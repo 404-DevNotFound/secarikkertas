@@ -9,6 +9,7 @@ import userRoutes from './routes/users.js'
 import adminRoutes from './routes/admin.js'
 import genreRoutes from './routes/genres.js'
 import notificationRoutes from './routes/notifications.js'
+import collectionRoutes from './routes/collections.js'
 import prisma from './data/prisma.js'
 
 const app = express()
@@ -52,6 +53,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/genres', genreRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/collections', collectionRoutes)
 
 app.get('/', (req, res) => res.send('secarikkertas API jalan ✅'))
 

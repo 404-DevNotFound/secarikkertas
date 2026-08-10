@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import CardPost from '../components/common/CardPost'
 import BookSpread from '../components/layout/BookSpread'
 import Pagination from '../components/common/Pagination'
+import { useAuth } from '../context/AuthContext'
 
 export default function HomePage() {
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [posts, setPosts] = useState([])
-  const [keyword, setKeyword] = useState('')
+  // Nilai awal keyword diambil dari URL (?q=...) supaya pencarian dari
+  // kotak cari di Navbar (lihat SearchBox.jsx) langsung terisi di sini,
+  // dan supaya link hasil pencarian bisa dibagikan/di-bookmark browser.
+  const [keyword, setKeyword] = useState(() => searchParams.get('q') || '')
   const [tab, setTab] = useState('cerpen')
   const [tagsAktif, setTagsAktif] = useState([])
   const [urutan, setUrutan] = useState('terbaru')
@@ -15,10 +21,26 @@ export default function HomePage() {
   const [totalHalaman, setTotalHalaman] = useState(1)
   const [memuat, setMemuat] = useState(true)
   const [daftarKategori, setDaftarKategori] = useState([])
+  const [rekomendasi, setRekomendasi] = useState([])
 
   useEffect(() => {
     document.title = 'secarikkertas'
   }, [])
+
+  // Kalau kotak cari di Navbar dipakai lagi selagi sudah di beranda (URL
+  // berubah tapi komponen tidak remount), keyword di sini ikut ter-update.
+  useEffect(() => {
+    const dariUrl = searchParams.get('q') || ''
+    setKeyword((prev) => (prev === dariUrl ? prev : dariUrl))
+  }, [searchParams])
+
+  // Rekomendasi personal — cuma untuk pengguna yang sudah login DAN
+  // sudah punya riwayat suka/simpan (endpoint mengembalikan array kosong
+  // kalau belum, lihat GET /posts/rekomendasi di backend).
+  useEffect(() => {
+    if (!user) { setRekomendasi([]); return }
+    api.get('/posts/rekomendasi').then((res) => setRekomendasi(res.data)).catch(() => setRekomendasi([]))
+  }, [user])
 
   // Daftar tag di sidebar diambil dari tabel Genre lewat backend,
   // bukan hardcode lagi — supaya tag baru yang ditambah lewat Prisma
@@ -47,6 +69,9 @@ export default function HomePage() {
   function ubahKeyword(v) {
     setKeyword(v)
     setHalaman(1)
+    // Simpan ke URL (?q=...) supaya pencarian ini bisa dibagikan/disimpan
+    // sebagai link, dan tetap sinkron kalau nanti dibuka dari Navbar lagi.
+    setSearchParams(v ? { q: v } : {}, { replace: true })
   }
   // Tag bisa dipilih lebih dari satu sekaligus (klik lagi untuk
   // membatalkan pilihan tag itu) — "Semua Tulisan" mengosongkan seleksi.
@@ -111,6 +136,29 @@ export default function HomePage() {
               </li>
             ))}
           </ul>
+
+          {rekomendasi.length > 0 && (
+            <div className="mb-8 pt-6 border-t border-naskah-aged/60">
+              <h3 className="font-ketik text-[11px] uppercase tracking-[0.2em] text-naskah-inksoft/70 mb-3">
+                Rekomendasi Untukmu
+              </h3>
+              <ul className="space-y-2.5">
+                {rekomendasi.map((p) => (
+                  <li key={p.id}>
+                    <Link
+                      to={`/post/${p.id}`}
+                      className="block font-naskah text-sm text-naskah-inksoft border-l-2 border-naskah-leather/50 pl-3 hover:text-naskah-leather hover:border-naskah-leather transition-colors"
+                    >
+                      {p.judul}
+                    </Link>
+                    <span className="block font-ketik text-[10px] text-naskah-inksoft/50 pl-3">
+                      oleh {p.penulis}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {populer.length > 0 && (
             <div className="mt-auto pt-6 pb-6 sm:pb-0 border-t border-naskah-aged/60">

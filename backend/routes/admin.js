@@ -2,6 +2,7 @@ import express from 'express'
 import prisma from '../data/prisma.js'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import { buatNotifikasi, beriTahuPengikut } from '../utils/notify.js'
+import { catatLogAdmin } from '../utils/log.js'
 
 const router = express.Router()
 router.use(requireAuth, requireAdmin(prisma))
@@ -38,12 +39,14 @@ router.put('/users/:id/role', async (req, res) => {
     return res.status(400).json({ message: 'Role tidak valid' })
   }
   const user = await prisma.user.update({ where: { id: req.params.id }, data: { role } })
+  catatLogAdmin({ adminId: req.userId, aksi: 'ubah_role', target: `@${user.username}`, detail: `Role diubah jadi ${role}` })
   res.json({ id: user.id, role: user.role })
 })
 
 router.put('/users/:id/banned', async (req, res) => {
   const { banned } = req.body
   const user = await prisma.user.update({ where: { id: req.params.id }, data: { banned: !!banned } })
+  catatLogAdmin({ adminId: req.userId, aksi: banned ? 'user_diblokir' : 'user_dibuka_blokir', target: `@${user.username}` })
   res.json({ id: user.id, banned: user.banned })
 })
 
@@ -63,6 +66,7 @@ router.delete('/users/:id', async (req, res) => {
   }
 
   await prisma.user.delete({ where: { id: req.params.id } })
+  catatLogAdmin({ adminId: req.userId, aksi: 'user_dihapus', target: `@${target.username}` })
   res.json({ message: `Akun "${target.username}" berhasil dihapus permanen` })
 })
 
@@ -99,6 +103,7 @@ router.put('/naskah/:id/mulai-periksa', async (req, res) => {
     where: { id: req.params.id },
     data: { status: 'ditinjau' },
   })
+  catatLogAdmin({ adminId: req.userId, aksi: 'naskah_mulai_diperiksa', target: updated.judul })
   res.json(updated)
 })
 
@@ -113,6 +118,7 @@ router.put('/naskah/:id/siap-terbit', async (req, res) => {
     where: { id: req.params.id },
     data: { status: 'siap_terbit' },
   })
+  catatLogAdmin({ adminId: req.userId, aksi: 'naskah_siap_terbit', target: updated.judul })
   res.json(updated)
 })
 
@@ -148,6 +154,7 @@ router.put('/naskah/:id/setujui', async (req, res) => {
     judul: post.judul,
   })
 
+  catatLogAdmin({ adminId: req.userId, aksi: 'naskah_disetujui', target: post.judul })
   res.json(post)
 })
 
@@ -165,16 +172,21 @@ router.put('/naskah/:id/tolak', async (req, res) => {
     link: `/dashboard`,
   })
 
+  catatLogAdmin({ adminId: req.userId, aksi: 'naskah_ditolak', target: post.judul, detail: catatan || '' })
   res.json(post)
 })
 
 router.delete('/posts/:id', async (req, res) => {
+  const target = await prisma.post.findUnique({ where: { id: req.params.id } })
   await prisma.post.delete({ where: { id: req.params.id } })
+  catatLogAdmin({ adminId: req.userId, aksi: 'naskah_dihapus', target: target?.judul || req.params.id })
   res.json({ message: 'Naskah dihapus' })
 })
 
 router.delete('/comments/:id', async (req, res) => {
+  const target = await prisma.comment.findUnique({ where: { id: req.params.id } })
   await prisma.comment.delete({ where: { id: req.params.id } })
+  catatLogAdmin({ adminId: req.userId, aksi: 'komentar_dihapus', target: target?.isi?.slice(0, 60) || req.params.id })
   res.json({ message: 'Komentar dihapus' })
 })
 
@@ -203,7 +215,27 @@ router.put('/laporan/:id/selesai', async (req, res) => {
     where: { id: req.params.id },
     data: { status: 'selesai' },
   })
+  catatLogAdmin({ adminId: req.userId, aksi: 'laporan_selesai', target: laporan.postId ? `naskah #${laporan.postId}` : `komentar #${laporan.commentId}` })
   res.json(laporan)
+})
+
+// Riwayat aksi admin (audit log) — 100 baris terakhir, terbaru duluan.
+// Ditaruh paling bawah supaya tidak bentrok dengan route ":id" manapun
+// di atasnya (di sini tidak ada, tapi konsisten dengan pola di posts.js).
+router.get('/log', async (req, res) => {
+  const log = await prisma.adminLog.findMany({
+    include: { admin: { select: { username: true, namaPena: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  })
+  res.json(log.map((l) => ({
+    id: l.id,
+    aksi: l.aksi,
+    target: l.target,
+    detail: l.detail,
+    createdAt: l.createdAt,
+    admin: l.admin ? (l.admin.namaPena || l.admin.username) : 'Akun terhapus',
+  })))
 })
 
 export default router

@@ -288,3 +288,33 @@ body {
 .scroll-halus::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* "Mode Nyaman" (lihat src/context/AccessibilityContext.jsx) — matikan
+   nyaris semua animasi/transisi CSS & kursor kustom, untuk pengguna yang
+   sensitif terhadap gerakan atau cuma mau tampilan yang lebih tenang.
+   Pendekatan sama dengan rekomendasi umum prefers-reduced-motion: durasi
+   dibuat nyaris nol (bukan "none" langsung) supaya elemen tetap sampai
+   ke state akhirnya tanpa animasi macet di tengah jalan. */
+.mode-nyaman *,
+.mode-nyaman *::before,
+.mode-nyaman *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+.mode-nyaman {
+  cursor: auto !important;
+}
+
+/* Baseline tambahan: hormati preferensi sistem operasi juga, terlepas
+   dari toggle manual di atas — jaring pengaman kalau JS belum sempat
+   jalan atau localStorage diblokir. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

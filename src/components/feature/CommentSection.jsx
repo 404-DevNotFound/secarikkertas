@@ -29,6 +29,7 @@ export default function CommentSection({ postId }) {
   const [namaTamu, setNamaTamu] = useState('')
   const [laporTarget, setLaporTarget] = useState(null)
   const [toast, setToast] = useState(null)
+  const [mengirim, setMengirim] = useState(false)
 
   useEffect(() => {
     api.get(`/posts/${postId}/comments`).then((res) => setComments(res.data))
@@ -36,23 +37,40 @@ export default function CommentSection({ postId }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!text.trim()) return
+    if (!text.trim() || mengirim) return
 
-    const res = await api.post(`/posts/${postId}/comments`, {
-      isi: text,
-      ...(!user && { namaTamu }),
-    })
-    setComments((prev) => [...prev, res.data])
-    setText('')
+    setMengirim(true)
+    try {
+      const res = await api.post(`/posts/${postId}/comments`, {
+        isi: text,
+        ...(!user && { namaTamu }),
+      })
+      setComments((prev) => [...prev, res.data])
+      setText('')
+    } catch (err) {
+      // Bisa gagal karena rate limit (terlalu sering komentar) atau
+      // tersaring moderasi konten otomatis — lihat commentLimiter &
+      // periksaKonten() di backend/routes/posts.js.
+      setToast({ message: err.response?.data?.message || 'Gagal mengirim komentar, coba lagi.', type: 'error' })
+    } finally {
+      setMengirim(false)
+    }
   }
 
   async function handleBalas(parentId, isiBalasan, namaTamuBalasan) {
-    const res = await api.post(`/posts/${postId}/comments`, {
-      isi: isiBalasan,
-      parentId,
-      ...(!user && { namaTamu: namaTamuBalasan }),
-    })
-    setComments((prev) => [...prev, res.data])
+    try {
+      const res = await api.post(`/posts/${postId}/comments`, {
+        isi: isiBalasan,
+        parentId,
+        ...(!user && { namaTamu: namaTamuBalasan }),
+      })
+      setComments((prev) => [...prev, res.data])
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Gagal mengirim balasan, coba lagi.', type: 'error' })
+      // Dilempar lagi supaya CommentItem (pemanggil) tahu ini gagal — jadi
+      // kotak balasannya TIDAK ikut ditutup/dikosongkan seolah berhasil.
+      throw err
+    }
   }
 
   async function kirimLaporan(alasan, detail) {
@@ -91,8 +109,8 @@ export default function CommentSection({ postId }) {
             placeholder="Tulis komentar..."
             className="flex-1 px-3 py-2 border border-kertas-line font-baca outline-none focus:border-stempel transition-colors"
           />
-          <button type="submit" className="px-4 py-2 bg-tinta text-kertas font-baca text-sm hover:bg-stempel-dark transition-colors">
-            Kirim
+          <button type="submit" disabled={mengirim} className="px-4 py-2 bg-tinta text-kertas font-baca text-sm hover:bg-stempel-dark transition-colors disabled:opacity-60">
+            {mengirim ? 'Mengirim...' : 'Kirim'}
           </button>
         </div>
       </form>

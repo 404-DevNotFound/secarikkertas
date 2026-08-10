@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import NotificationBell from '../feature/NotificationBell'
 import DarkModeToggle from '../common/DarkModeToggle'
+import AccessibilityToggle from '../common/AccessibilityToggle'
+import SearchBox from '../common/SearchBox'
 
 const NAMA_BULAN = [
   'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
@@ -81,6 +83,8 @@ export default function Navbar() {
           )}
 
           <DarkModeToggle />
+          <AccessibilityToggle />
+          <SearchBox />
 
           {user ? (
             <>
@@ -113,6 +117,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-1 md:hidden shrink-0">
           <DarkModeToggle />
+          <AccessibilityToggle />
           <button className="p-2 -mr-2" onClick={() => setMenuBuka((v) => !v)} aria-label="Buka menu">
             <svg width="22" height="22" viewBox="0 0 22 22" className="text-naskah-ink">
               <line x1="2" y1="6" x2="20" y2="6" stroke="currentColor" strokeWidth="1.8" />
@@ -125,6 +130,7 @@ export default function Navbar() {
 
       {menuBuka && (
         <div className="md:hidden border-t border-naskah-aged px-4 py-4 flex flex-col gap-4 font-mono text-sm uppercase tracking-wide">
+          <SearchBox className="!w-full" awalTerbuka fullWidth />
           <button onClick={kembaliKeSampul} className="text-left text-naskah-inksoft">← Sampul</button>
           <Link to="/" onClick={() => setMenuBuka(false)} className="text-naskah-inksoft">Beranda</Link>
           {user?.role === 'admin' && (

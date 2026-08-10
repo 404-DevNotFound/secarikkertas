@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useId } from 'react'
 
 const ALASAN = [
   'Konten tidak pantas / vulgar',
@@ -14,6 +14,16 @@ export default function ReportModal({ open, title = 'Laporkan Konten', onSubmit,
   const [alasan, setAlasan] = useState(ALASAN[0])
   const [detail, setDetail] = useState('')
   const [mengirim, setMengirim] = useState(false)
+  const judulId = useId()
+
+  useEffect(() => {
+    if (!open) return
+    function onKey(e) {
+      if (e.key === 'Escape') onCancel?.()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onCancel])
 
   if (!open) return null
 
@@ -29,8 +39,8 @@ export default function ReportModal({ open, title = 'Laporkan Konten', onSubmit,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tinta/50 backdrop-blur-sm px-4">
-      <div className="bg-kertas max-w-sm w-full p-6 shadow-xl border border-kertas-line">
-        <h3 className="font-judul text-lg font-semibold text-tinta mb-4">{title}</h3>
+      <div role="dialog" aria-modal="true" aria-labelledby={judulId} className="bg-kertas max-w-sm w-full p-6 shadow-xl border border-kertas-line">
+        <h3 id={judulId} className="font-judul text-lg font-semibold text-tinta mb-4">{title}</h3>
 
         <label className="block font-mono text-[11px] uppercase tracking-widest text-tinta-faint mb-1.5">
           Alasan

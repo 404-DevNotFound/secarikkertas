@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { useAccessibility } from './context/AccessibilityContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import AdminRoute from './routes/AdminRoute'
 
@@ -13,6 +14,7 @@ import HomePage from './pages/HomePage'
 import ReadPostPage from './pages/ReadPostPage'
 import WriterDashboard from './pages/WriterDashboard'
 import WriteEditorPage from './pages/WriteEditorPage'
+import WriterStatsPage from './pages/WriterStatsPage'
 import UserProfilePage from './pages/UserProfilePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -33,6 +35,7 @@ function perluTampilkanCover() {
 
 function App() {
   const [tampilkanCover, setTampilkanCover] = useState(perluTampilkanCover)
+  const { modeNyaman } = useAccessibility()
 
   if (tampilkanCover) {
     return (
@@ -60,10 +63,12 @@ function App() {
           {/* Buku besar — sekarang mengisi seluruh viewport (100vh), bukan lagi
               kartu mengambang di atas latar. Kursor kustom bentuk pensil dipasang
               di sini supaya berlaku di seluruh halaman buku (link/tombol tetap
-              pakai kursor pointer bawaan browser, tidak ketimpa). */}
+              pakai kursor pointer bawaan browser, tidak ketimpa) — KECUALI kalau
+              "Mode Nyaman" aktif, karena kursor kustom termasuk yang dimatikan
+              oleh mode itu (lihat AccessibilityContext). */}
           <div
             className="w-full h-screen flex flex-col overflow-hidden"
-            style={{ cursor: "url('/cursor-pensil.svg') 22 22, auto" }}
+            style={modeNyaman ? undefined : { cursor: "url('/cursor-pensil.svg') 22 22, auto" }}
           >
             <Navbar />
 
@@ -78,6 +83,7 @@ function App() {
 
                 <Route path="/dashboard" element={<ProtectedRoute><WriterDashboard /></ProtectedRoute>} />
                 <Route path="/dashboard/tulis/:id" element={<ProtectedRoute><WriteEditorPage /></ProtectedRoute>} />
+                <Route path="/dashboard/statistik" element={<ProtectedRoute><WriterStatsPage /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                 <Route path="/tersimpan" element={<ProtectedRoute><SavedPostsPage /></ProtectedRoute>} />
 

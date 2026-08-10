@@ -104,9 +104,16 @@ export default function WriterDashboard() {
             <h1 className="font-naskah text-3xl sm:text-4xl leading-tight text-naskah-ink mb-4">
               Dasbor Menulis
             </h1>
-            <p className="font-ketik text-sm text-naskah-inksoft leading-relaxed mb-8">
+            <p className="font-ketik text-sm text-naskah-inksoft leading-relaxed mb-3">
               Kelola naskahmu di sini — dari draf, antrean tinjauan, sampai terbit.
             </p>
+
+            <Link
+              to="/dashboard/statistik"
+              className="inline-flex items-center gap-1.5 font-ketik text-xs uppercase tracking-wide text-naskah-leather underline mb-8 w-fit"
+            >
+              Lihat Statistik &amp; Insight &rarr;
+            </Link>
 
             <p className="font-ketik text-[11px] uppercase tracking-widest text-naskah-inksoft/70 mb-2">
               Mulai Tulisan Baru
