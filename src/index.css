@@ -285,6 +285,14 @@ body {
   background-color: rgb(var(--color-tinta) / 0.25);
   border-radius: 4px;
 }
+/* Kursor berkedip untuk efek mengetik (lihat TypedText.jsx) — kedip
+   step-end (langsung on/off, tanpa fade) supaya terasa seperti kursor
+   mesin ketik/terminal sungguhan. */
+@keyframes kedip {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 .scroll-halus::-webkit-scrollbar-track {
   background: transparent;
 }

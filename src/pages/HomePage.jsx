@@ -4,6 +4,7 @@ import api from '../api/axios'
 import CardPost from '../components/common/CardPost'
 import BookSpread from '../components/layout/BookSpread'
 import Pagination from '../components/common/Pagination'
+import TypedText from '../components/common/TypedText'
 import { useAuth } from '../context/AuthContext'
 
 export default function HomePage() {
@@ -90,7 +91,7 @@ export default function HomePage() {
             Bagian I &middot; Pendahuluan
           </span>
           <h1 className="font-naskah text-3xl sm:text-4xl leading-tight text-naskah-ink mb-4">
-            Selamat datang di <em className="not-italic italic">secarikkertas</em>
+            <TypedText text="secarikkertas" />
           </h1>
           <blockquote className="font-baca text-sm italic text-naskah-inksoft leading-relaxed mb-6 border-l-2 border-naskah-moss/50 pl-4">
             "Orang boleh pandai setinggi langit, tapi selama ia tidak menulis, ia akan
